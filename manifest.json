@@ -1,0 +1,23 @@
+{
+  "name": "SCA Catación de Café App",
+  "short_name": "SCA Catación",
+  "description": "Aplicación interactiva para el formulario de catación SCA.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/2563eb/FFFFFF?text=SCA",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://placehold.co/512x512/2563eb/FFFFFF?text=SCA",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
