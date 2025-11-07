@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCA Coffee Cupping App v3</title>
+    <!-- Incluimos Tailwind CSS para un diseño moderno y responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- === NUEVO: Dependencias para PDF y Iconos === -->
+    <!-- Font Awesome (para el icono de PDF) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- html2canvas (para "fotografiar" el DOM) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- jsPDF (para crear el PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- === FIN DE NUEVO === -->
+
+    <!-- === AÑADIDO PARA PWA === -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb"> <!-- Color azul de la cabecera -->
+    <!-- === FIN PWA === -->
+
+    <style>
+        /* Estilos adicionales para una mejor apariencia mobile */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilo para los "tags" de aromas seleccionados */
+        .aroma-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            margin: 4px;
+            border-radius: 16px;
+            font-size: 0.875rem; /* 14px */
+            font-weight: 500;
+            max-width: 100%; /* Evita que el tag sea más ancho que su contenedor */
+        }
+        .aroma-tag-text {
+            /* Permite que el texto se ajuste y rompa palabras */
+            flex-grow: 1;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+        }
+        .aroma-tag button {
+            margin-left: 8px;
+            font-weight: bold;
+            opacity: 0.7;
+            flex-shrink: 0; /* Evita que el botón se encoja */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Contenedor principal de la App (con ID para exportar) -->
+    <div id="cuppingSheetContainer" class="container mx-auto max-w-7xl bg-white shadow-lg rounded-lg my-4">
+
+        <!-- Cabecera (con campos de catador) -->
+        <header class="p-6 bg-blue-800 text-white rounded-t-lg">
+            <h1 class="text-2xl font-bold">SCA Coffee Value Assessment (Combined Form)</h1>
+            <p class="text-blue-200">Prototipo Interactivo v3</p>
+            
+            <!-- === NUEVO: Campos de Catador === -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                    <label for="catador_nombre" class="block text-sm font-medium text-blue-200">Nombre (Catador):</label>
+                    <input type="text" id="catador_nombre" class="w-full mt-1 p-2 rounded-md text-gray-800" placeholder="Tu nombre...">
+                </div>
+                <div>
+                    <label for="catador_fecha" class="block text-sm font-medium text-blue-200">Fecha:</label>
+                    <input type="date" id="catador_fecha" class="w-full mt-1 p-2 rounded-md text-gray-800">
+                </div>
+                <div>
+                    <label for="catador_cafe" class="block text-sm font-medium text-blue-200">Café (Muestra):</label>
+                    <input type="text" id="catador_cafe" class="w-full mt-1 p-2 rounded-md text-gray-800" placeholder="ID de la muestra...">
+                </div>
+            </div>
+            <!-- === FIN DE NUEVO === -->
+        </header>
+
+
+        <!-- Cuerpo del Formulario con 2 Columnas alineadas por fila -->
+        <main class="space-y-6 p-6">
+
+            <!-- Títulos de Columnas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <h2 class="text-xl font-semibold text-gray-500 border-b pb-2 mb-0">PART 1: SENSORY DESCRIPTIVE ASSESSMENT</h2>
+                <h2 class="text-xl font-semibold text-gray-500 border-b pb-2 mb-0">PART 2: AFFECTIVE ASSESSMENT</h2>
+            </div>
+
+            <!-- Fila 1: Fragrance & Aroma -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Col 1: Descriptive -->
+                <section class="border rounded-lg p-4 space-y-4 h-full">
+                    <h3 class="text-lg font-bold">Fragrance & Aroma</h3>
+                    <!-- Fragrance Intensity -->
+                    <div class="space-y-2">
+                        <label for="fragrance_intensity" class="flex justify-between items-center text-md font-medium">
+                            <span>Fragrance Intensity</span>
+                            <span id="fragrance_intensity_val" class="font-bold text-blue-600">7</span>
+                        </label>
+                        <input type="range" id="fragrance_intensity" name="fragrance_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('fragrance_intensity')">
+                    </div>
+                    <!-- Aroma Intensity -->
+                    <div class="space-y-2">
+                        <label for="aroma_intensity" class="flex justify-between items-center text-md font-medium">
+                            <span>Aroma Intensity</span>
+                            <span id="aroma_intensity_val" class="font-bold text-blue-600">7</span>
+                        </label>
+                        <input type="range" id="aroma_intensity" name="aroma_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aroma_intensity')">
+                    </div>
+                    <!-- Aroma Grid (Fragrance) -->
+                    <div class="space-y-3">
+                        <h4 class="text-md font-medium">Select up to five that apply:</h4>
+                        <div id="fragrance_aroma_tags" class="flex flex-wrap -m-1"></div>
+                        <div id="fragrance_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <!-- Botones generados por JS -->
+                        </div>
+                    </div>
+                </section>
+                <!-- Col 2: Affective -->
+                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 h-full flex flex-col">
+                     <div class="space-y-2">
+                        <label for="fragrance_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                            <span>Fragrance (Final)</span>
+                            <span id="fragrance_final_val" class="font-bold text-gray-700">5</span>
+                        </label>
+                        <input type="range" id="fragrance_final" name="fragrance_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('fragrance_final')">
+                    </div>
+                    <div class="space-y-2">
+                        <label for="aroma_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                            <span>Aroma (Final)</span>
+                            <span id="aroma_final_val" class="font-bold text-gray-700">5</span>
+                        </label>
+                        <input type="range" id="aroma_final" name="aroma_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aroma_final')">
+                    </div>
+                    <!-- Notas para Fragrance/Aroma Final -->
+                    <div class="space-y-2 mt-4 flex flex-col flex-1">
+                        <label for="fragrance_aroma_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                        <textarea id="fragrance_aroma_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white flex-1" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Fila 2: Flavor & Aftertaste -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Col 1: Descriptive -->
+                <section class="border rounded-lg p-4 space-y-4 h-full">
+                    <h3 class="text-lg font-bold">Flavor & Aftertaste</h3>
+                    <!-- Flavor Intensity -->
+                    <div class="space-y-2">
+                        <label for="flavor_intensity" class="flex justify-between items-center text-md font-medium">
+                            <span>Flavor Intensity</span>
+                            <span id="flavor_intensity_val" class="font-bold text-blue-600">7</span>
+                        </label>
+                        <input type="range" id="flavor_intensity" name="flavor_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('flavor_intensity')">
+                    </div>
+                    <!-- Aftertaste Intensity -->
+                    <div class="space-y-2">
+                        <label for="aftertaste_intensity" class="flex justify-between items-center text-md font-medium">
+                            <span>Aftertaste Intensity</span>
+                            <span id="aftertaste_intensity_val" class="font-bold text-blue-600">7</span>
+                        </label>
+                        <input type="range" id="aftertaste_intensity" name="aftertaste_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aftertaste_intensity')">
+                    </div>
+                    <!-- Aroma Grid (Flavor) -->
+                    <div class="space-y-3">
+                        <h4 class="text-md font-medium">Select up to five that apply:</h4>
+                        <div id="flavor_aroma_tags" class="flex flex-wrap -m-1"></div>
+                        <div id="flavor_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <!-- Botones generados por JS -->
+                        </div>
+                    </div>
+                    <!-- Main Tastes -->
+                    <div class="space-y-3">
+                        <h4 class="text-md font-medium">Main Tastes (select up to 2)</h4>
+                        <div class="flex flex-wrap gap-x-4 gap-y-2">
+                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="salty" class="form-checkbox h-5 w-5"> Salty</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="sour" class="form-checkbox h-5 w-5"> Sour</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="sweet" class="form-checkbox h-5 w-5"> Sweet</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="bitter" class="form-checkbox h-5 w-5"> Bitter</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="umami" class="form-checkbox h-5 w-5"> Umami</label>
+                        </div>
+                    </div>
+                </section>
+                <!-- Col 2: Affective -->
+                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 h-full flex flex-col">
+                     <div class="space-y-2">
+                        <label for="flavor_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                            <span>Flavor (Final)</span>
+                            <span id="flavor_final_val" class="font-bold text-gray-700">5</span>
+                        </label>
+                        <input type="range" id="flavor_final" name="flavor_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('flavor_final')">
+                    </div>
+                    <div class="space-y-2">
+                        <label for="aftertaste_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                            <span>Aftertaste (Final)</span>
+                            <span id="aftertaste_final_val" class="font-bold text-gray-700">5</span>
+                        </label>
+                        <input type="range" id="aftertaste_final" name="aftertaste_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aftertaste_final')">
+                    </div>
+                    <!-- Notas para Flavor/Aftertaste Final -->
+                    <div class="space-y-2 mt-4 flex flex-col flex-1">
+                        <label for="flavor_aftertaste_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                        <textarea id="flavor_aftertaste_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white flex-1" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Fila 3: Acidity -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Col 1: Descriptive -->
+                <section class="border rounded-lg p-4 space-y-4 h-full">
+                    <h3 class="text-lg font-bold">Acidity</h3>
+                    <!-- Acidity Intensity -->
+                    <div class="space-y-2">
+                        <label for="acidity_intensity" class="flex justify-between items-center text-md font-medium">
+                            <span>Acidity Intensity</span>
+                            <span id="acidity_intensity_val" class="font-bold text-blue-600">7</span>
+                        </label>
+                        <input type="range" id="acidity_intensity" name="acidity_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('acidity_intensity')">
+                    </div>
+                    <!-- Acidity Type -->
+                    <div class="space-y-2">
+                        <h4 class="text-md font-medium">Select one:</h4>
+                        <div class="flex flex-col space-y-2">
+                            <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><input type="radio" name="acidity_type" value="dry" class="form-radio h-5 w-5"> Dry Acidity (Herby, Grassy, Tart)</label>
+                            <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><input type="radio" name="acidity_type" value="sweet" class="form-radio h-5 w-5"> Sweet Acidity (Juicy, Fruit-like, Bright)</label>
+                        </div>
+                    </div>
+                </section>
+                <!-- Col 2: Affective -->
+                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 h-full flex flex-col">
+                     <div class="space-y-2">
+                        <label for="acidity_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                            <span>Acidity (Final)</span>
+                            <span id="acidity_final_val" class="font-bold text-gray-700">5</span>
+                        </label>
+                        <input type="range" id="acidity_final" name="acidity_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('acidity_final')">
+                    </div>
+                    <!-- Notas para Acidity Final -->
+                    <div class="space-y-2 mt-4 flex flex-col flex-1">
+                        <label for="acidity_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                        <textarea id="acidity_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white flex-1" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Fila 4: Sweetness -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Col 1: Descriptive -->
+                <section class="border rounded-lg p-4 space-y-4 h-full">
+                    <h3 class="text-lg font-bold">Sweetness</h3>
+                    <!-- Sweetness Intensity -->
+                    <div class="space-y-2">
+                        <label for="sweetness_intensity" class="flex justify-between items-center text-md font-medium">
+                            <span>Sweetness Intensity</span>
+                            <span id="sweetness_intensity_val" class="font-bold text-blue-600">7</span>
+                        </label>
+                        <input type="range" id="sweetness_intensity" name="sweetness_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('sweetness_intensity')">
+                    </div>
+                    <!-- Sweetness Notes -->
+                    <div class="space-y-2">
+                         <h4 class="text-md font-medium">Notes (optional):</h4>
+                         <textarea id="sweetness_notes" rows="2" class="w-full p-2 border rounded-md bg-gray-50" placeholder="e.g., Honey-like, Caramel..." oninput="updateNotes(this.id)"></textarea>
+                    </div>
+                </section>
+                <!-- Col 2: Affective -->
+                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 h-full flex flex-col">
+                     <div class="space-y-2">
+                        <label for="sweetness_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                            <span>Sweetness (Final)</span>
+                            <span id="sweetness_final_val" class="font-bold text-gray-700">5</span>
+                        </label>
+                        <input type="range" id="sweetness_final" name="sweetness_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('sweetness_final')">
+                    </div>
+                    <!-- Notas para Sweetness Final -->
+                    <div class="space-y-2 mt-4 flex flex-col flex-1">
+                        <label for="sweetness_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                        <textarea id="sweetness_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white flex-1" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Fila 5: Mouthfeel -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Col 1: Descriptive -->
+                <section class="border rounded-lg p-4 space-y-4 h-full">
+                    <h3 class="text-lg font-bold">Mouthfeel</h3>
+                    <!-- Mouthfeel Intensity -->
+                    <div class="space-y-2">
+                        <label for="mouthfeel_intensity" class="flex justify-between items-center text-md font-medium">
+                            <span>Mouthfeel Intensity</span>
+                            <span id="mouthfeel_intensity_val" class="font-bold text-blue-600">7</span>
+                        </label>
+                        <input type="range" id="mouthfeel_intensity" name="mouthfeel_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('mouthfeel_intensity')">
+                    </div>
+                    <!-- Mouthfeel Type -->
+                    <div class="space-y-2">
+                        <h4 class="text-md font-medium">Select up to two:</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="rough" class="form-checkbox h-5 w-5"> Rough</label>
+                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="oily" class="form-checkbox h-5 w-5"> Oily</label>
+                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="smooth" class="form-checkbox h-5 w-5"> Smooth</label>
+                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="mouth-drying" class="form-checkbox h-5 w-5"> Mouth-drying</label>
+                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="metallic" class="form-checkbox h-5 w-5"> Metallic</label>
+                        </div>
+                    </div>
+                </section>
+                <!-- Col 2: Affective -->
+                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 h-full flex flex-col">
+                     <div class="space-y-2">
+                        <label for="mouthfeel_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                            <span>Mouthfeel (Final)</span>
+                            <span id="mouthfeel_final_val" class="font-bold text-gray-700">5</span>
+                        </label>
+                        <input type="range" id="mouthfeel_final" name="mouthfeel_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('mouthfeel_final')">
+                    </div>
+                    <!-- Notas para Mouthfeel Final -->
+                    <div class="space-y-2 mt-4 flex flex-col flex-1">
+                        <label for="mouthfeel_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                        <textarea id="mouthfeel_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white flex-1" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Fila 6: Extrinsic Assessment / Overall -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Col 1: Descriptive -->
+                <section class="border rounded-lg p-4 space-y-4 h-full">
+                    <h2 class="text-lg font-bold text-gray-500">PART 3: EXTRINSIC ASSESSMENT</h2>
+                    <h3 class="text-lg font-bold">Overall</h3>
+                    <!-- Overall Notes -->
+                    <div class="space-y-2">
+                         <h4 class="text-md font-medium">Notes (optional):</h4>
+                         <textarea id="part3_notes" rows="3" class="w-full p-2 border rounded-md bg-gray-50" placeholder="Overall impression, notes..." oninput="updateNotes(this.id)"></textarea>
+                    </div>
+                </section>
+                <!-- Col 2: Affective -->
+                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 h-full flex flex-col">
+                     <div class="space-y-2">
+                        <label for="overall_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                            <span>Overall (Final)</span>
+                            <span id="overall_final_val" class="font-bold text-gray-700">5</span>
+                        </label>
+                        <input type="range" id="overall_final" name="overall_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('overall_final')">
+                    </div>
+
+                    <!-- === NUEVO BLOQUE DE DEFECTOS === -->
+                    <div class="space-y-3 pt-4 mt-4 border-t border-gray-200">
+                        <!-- Non-Uniform Cups -->
+                        <div>
+                            <h4 class="text-md font-medium text-gray-700">NON-UNIFORM CUPS</h4>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <!-- Defective Cups -->
+                        <div>
+                            <h4 class="text-md font-medium text-gray-700">DEFECTIVE CUPS</h4>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <!-- Defect (if any) -->
+                        <div>
+                            <h4 class="text-md font-medium text-gray-700">DEFECT (IF ANY)</h4>
+                            <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+                                <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="moldy" class="form-checkbox h-5 w-5 text-red-600 border-gray-300 rounded focus:ring-red-500"> MOLDY</label>
+                                <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="potato" class="form-checkbox h-5 w-5 text-red-600 border-gray-300 rounded focus:ring-red-500"> POTATO</label>
+                                <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="phenolic" class="form-checkbox h-5 w-5 text-red-600 border-gray-300 rounded focus:ring-red-500"> PHENOLIC</label>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- === FIN DE NUEVO BLOQUE === -->
+
+                    <!-- Notas para Overall Final -->
+                    <div class="space-y-2 mt-4 flex flex-col flex-1">
+                        <label for="overall_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                        <textarea id="overall_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white flex-1" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                    </div>
+                </section>
+            </div>
+
+        </main>
+
+        <!-- Fila 7: Total Score -->
+        <footer class="p-6 bg-blue-800 text-white rounded-b-lg mt-6">
+            <!-- === NUEVO: Botón de Exportar === -->
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Total Score</h2>
+                <button id="exportButton" class="bg-white text-blue-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-100 flex items-center gap-2">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Exportar a PDF</span>
+                </button>
+            </div>
+            <!-- === FIN DE NUEVO === -->
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div class="bg-blue-700 p-4 rounded-lg">
+                    <span class="text-sm font-medium text-blue-200 block">Attribute Score</span>
+                    <span id="attribute_score_display" class="text-3xl font-bold">0.00</span>
+                </div>
+                <div class="bg-blue-700 p-4 rounded-lg">
+                    <span class="text-sm font-medium text-blue-200 block">Defect Subtraction</span>
+                    <span id="defect_score_display" class="text-3xl font-bold">0.00</span>
+                </div>
+                <div class="bg-white text-blue-900 p-4 rounded-lg shadow-inner">
+                    <span class="text-sm font-medium text-blue-700 block">Final Score (Base 58.00)</span>
+                    <span id="total_score_display" class="text-4xl font-extrabold">58.00</span>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- ============================================= -->
+    <!-- === MODAL (Sigue siendo uno solo) === -->
+    <!-- ============================================= -->
+    <div id="aromaModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <header id="modalHeader" class="p-4 border-b flex justify-between items-center transition-colors duration-300">
+                <h2 id="modalTitle" class="text-xl font-bold">Select Aroma</h2>
+                <button onclick="closeAromaModal()" class="text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
+            </header>
+            
+            <div class="p-4 overflow-y-auto flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+                <!-- Nivel 2 -->
+                <div class="flex-1">
+                    <h3 class="font-semibold mb-2 text-gray-500">Nivel 2 (Anillo 2)</h3>
+                    <ul id="level2List" class="space-y-2"></ul>
+                </div>
+                <!-- Nivel 3 -->
+                <div class="flex-1">
+                    <h3 class="font-semibold mb-2 text-gray-500">Nivel 3 (Anillo 3)</h3>
+                    <ul id="level3List" class="space-y-2">
+                        <li class="text-gray-400 p-3 rounded-md">Seleccione una opción del Nivel 2</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <footer class="p-4 border-t bg-gray-50 rounded-b-lg text-right">
+                <p id="modalSelection" class="text-sm text-gray-600 text-left">Selección: N/A</p>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- Mensaje de Límite -->
+    <div id="limitMessage" class="hidden fixed bottom-4 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg transition-all duration-300 z-50">
+        Ya has seleccionado 5 descriptores para esta sección.
+    </div>
+
+
+    <script>
+        // --- BASE DE DATOS DE LA RUEDA DE AROMAS (con colores) ---
+        // Refactorizado para tener colores específicos para cada estado (botón, modal, tag)
+        const aromaWheel = {
+            'FLORAL': {
+                // Botón principal
+                btnColor: 'bg-pink-200', btnTextColor: 'text-pink-900', btnHover: 'hover:bg-pink-300',
+                // Modal
+                modalHeader: 'bg-pink-200', modalTitleColor: 'text-pink-900',
+                modalBtnColor: 'bg-pink-50', modalBtnHover: 'hover:bg-pink-100', modalBtnText: 'text-pink-800',
+                // Tag
+                tagColor: 'bg-pink-200', tagTextColor: 'text-pink-900',
+                sub: { 'Floral': ['Manzanilla (Chamomile)', 'Rosa (Rose)', 'Jazmín (Jasmine)', 'Ninguno de estos'], 'Té Negro (Black Tea)': ['Té Negro', 'Ninguno de estos'] }
+            },
+            'FRUITY': {
+                btnColor: 'bg-red-200', btnTextColor: 'text-red-900', btnHover: 'hover:bg-red-300',
+                modalHeader: 'bg-red-200', modalTitleColor: 'text-red-900',
+                modalBtnColor: 'bg-red-50', modalBtnHover: 'hover:bg-red-100', modalBtnText: 'text-red-800',
+                tagColor: 'bg-red-200', tagTextColor: 'text-red-900',
+                sub: { 'Bayas (Berry)': ['Mora (Blackberry)', 'Frambuesa (Raspberry)', 'Arándano (Blueberry)', 'Fresa (Strawberry)', 'Ninguno de estos'], 'Fruta Seca (Dried Fruit)': ['Pasa (Raisin)', 'Ciruela Pasa (Prune)', 'Ninguno de estos'], 'Cítrico (Citrus Fruit)': ['Toronja (Grapefruit)', 'Naranja (Orange)', 'Limón (Lemon)', 'Lima (Lime)', 'Ninguno de estos'], 'Otra Fruta (Other Fruit)': ['Coco (Coconut)', 'Cereza (Cherry)', 'Granada (Pomegranate)', 'Piña (Pineapple)', 'Uva (Grape)', 'Manzana (Apple)', 'Pera (Pear)', 'Durazno (Peach)', 'Ninguno de estos'] }
+            },
+            'SOUR/FERMENTED': {
+                btnColor: 'bg-yellow-200', btnTextColor: 'text-yellow-900', btnHover: 'hover:bg-yellow-300',
+                modalHeader: 'bg-yellow-200', modalTitleColor: 'text-yellow-900',
+                modalBtnColor: 'bg-yellow-50', modalBtnHover: 'hover:bg-yellow-100', modalBtnText: 'text-yellow-800',
+                tagColor: 'bg-yellow-200', tagTextColor: 'text-yellow-900',
+                sub: { 'Agrio (Sour)': ['Ácido acético (Acetic)', 'Ácido butírico (Butyric)', 'Ácido isovalérico (Isovaleric)', 'Ácido cítrico (Citric)', 'Ácido málico (Malic)', 'Ninguno de estos'], 'Fermentado (Fermented)': ['Alcohólico (Alcohol)', 'Vino (Winey)', 'Whisky', 'Sobre-maduro (Overripe)', 'Ninguno de estos'] }
+            },
+            'GREEN/VEGETATIVE': {
+                btnColor: 'bg-green-200', btnTextColor: 'text-green-900', btnHover: 'hover:bg-green-300',
+                modalHeader: 'bg-green-200', modalTitleColor: 'text-green-900',
+                modalBtnColor: 'bg-green-50', modalBtnHover: 'hover:bg-green-100', modalBtnText: 'text-green-800',
+                tagColor: 'bg-green-200', tagTextColor: 'text-green-900',
+                sub: { 'Aceite de Oliva (Olive Oil)': ['Aceite de Oliva', 'Ninguno de estos'], 'Crudo (Raw)': ['Crudo', 'Ninguno de estos'], 'Verde/Vegetal (Green/Vegetative)': ['Bajo-desarrollo (Under-developed)', 'Pasto (Grassy)', 'Hierba (Herb-like)', 'Heno (Hay-like)', 'Ninguno de estos'], 'Leguminoso (Beany)': ['Leguminoso', 'Ninguno de estos'] }
+            },
+            'OTHER': {
+                btnColor: 'bg-purple-200', btnTextColor: 'text-purple-900', btnHover: 'hover:bg-purple-300',
+                modalHeader: 'bg-purple-200', modalTitleColor: 'text-purple-900',
+                modalBtnColor: 'bg-purple-50', modalBtnHover: 'hover:bg-purple-100', modalBtnText: 'text-purple-800',
+                tagColor: 'bg-purple-200', tagTextColor: 'text-purple-900',
+                sub: { 'Papel/Cartón (Papery/Musty)': ['Papel (Paper)', 'Cartón (Cardboard)', 'Moho (Musty)', 'Tierra (Earthy)', 'Polvo (Dusty)', 'Ninguno de estos'], 'Químico (Chemical)': ['Medicinal (Medicinal)', 'Goma (Rubber)', 'Petróleo (Petroleum)', 'Gas (Skunky)', 'Ninguno de estos'] }
+            },
+            'ROASTED': {
+                btnColor: 'bg-zinc-700', btnTextColor: 'text-zinc-50', btnHover: 'hover:bg-zinc-600',
+                modalHeader: 'bg-zinc-700', modalTitleColor: 'text-zinc-50',
+                modalBtnColor: 'bg-zinc-100', modalBtnHover: 'hover:bg-zinc-200', modalBtnText: 'text-zinc-800',
+                tagColor: 'bg-zinc-700', tagTextColor: 'text-zinc-50',
+                sub: { 
+                    'Cereal (Cereal)': ['Cereal', 'Ninguno de estos'], 
+                    'Malt (Malt)': ['Malt', 'Ninguno de estos'], 
+                    'Tabaco (Tobacco)': ['Tabaco', 'Ninguno de estos'], 
+                    'Tostado (Roasted)': ['Quemado (Burnt)', 'Ahumado (Smoky)', 'Ceniza (Ashy)', 'Ninguno de estos'] 
+                }
+            },
+            'NUTTY/COCOA': {
+                btnColor: 'bg-orange-300', btnTextColor: 'text-orange-900', btnHover: 'hover:bg-orange-400',
+                modalHeader: 'bg-orange-300', modalTitleColor: 'text-orange-900',
+                modalBtnColor: 'bg-orange-50', modalBtnHover: 'hover:bg-orange-100', modalBtnText: 'text-orange-800',
+                tagColor: 'bg-orange-300', tagTextColor: 'text-orange-900',
+                sub: { 'Nuez (Nutty)': ['Maní (Peanut)', 'Avellana (Hazelnut)', 'Almendra (Almond)', 'Ninguno de estos'], 'Cacao (Cocoa)': ['Chocolate', 'Chocolate Amargo (Dark Chocolate)', 'Ninguno de estos'] }
+            },
+            'SPICY': {
+                btnColor: 'bg-amber-500', btnTextColor: 'text-amber-50', btnHover: 'hover:bg-amber-600',
+                modalHeader: 'bg-amber-500', modalTitleColor: 'text-amber-50',
+                modalBtnColor: 'bg-amber-50', modalBtnHover: 'hover:bg-amber-100', modalBtnText: 'text-amber-800',
+                tagColor: 'bg-amber-500', tagTextColor: 'text-amber-50',
+                sub: { 'Especias (Spices)': ['Anís (Anise)', 'Nuez Moscada (Nutmeg)', 'Canela (Cinnamon)', 'Clavo (Clove)', 'Pimienta (Pepper)', 'Ninguno de estos'] }
+            },
+            'SWEET': {
+                btnColor: 'bg-blue-200', btnTextColor: 'text-blue-900', btnHover: 'hover:bg-blue-300',
+                modalHeader: 'bg-blue-200', modalTitleColor: 'text-blue-900',
+                modalBtnColor: 'bg-blue-50', modalBtnHover: 'hover:bg-blue-100', modalBtnText: 'text-blue-800',
+                tagColor: 'bg-blue-200', tagTextColor: 'text-blue-900',
+                sub: { 'Vainilla (Vanilla)': ['Vainilla', 'Ninguno de estos'], 'Azúcar Morena (Brown Sugar)': ['Melaza (Molasses)', 'Caramelo (Caramel)', 'Miel (Honey)', 'Ninguno de estos'] }
+            }
+        };
+ 
+        // --- ESTADO DE LA APP ---
+        let cuppingData = {
+            metadata: {
+                nombre: "",
+                fecha: "",
+                cafe: ""
+            },
+            descriptive: {
+                fragrance_intensity: 7,
+                aroma_intensity: 7,
+                fragrance_aromas: [], // Lista 1
+                flavor_intensity: 7,
+                aftertaste_intensity: 7,
+                flavor_aromas: [], // Lista 2
+                main_tastes: [],
+                acidity_intensity: 7,
+                acidity_type: null,
+                sweetness_intensity: 7,
+                sweetness_notes: "",
+                mouthfeel_intensity: 7,
+                mouthfeel_types: [],
+                part3_notes: ""
+            },
+            affective: {
+                fragrance_final: 5, aroma_final: 5, flavor_final: 5, aftertaste_final: 5,
+                acidity_final: 5, sweetness_final: 5, mouthfeel_final: 5, overall_final: 5,
+                // Nuevos campos de notas
+                fragrance_aroma_final_notes: "",
+                flavor_aftertaste_final_notes: "",
+                acidity_final_notes: "",
+                sweetness_final_notes: "",
+                mouthfeel_final_notes: "",
+                overall_final_notes: "",
+                // Nuevos campos de defectos
+                non_uniform_cups: 0,
+                defective_cups: 0,
+                defects: []
+            }
+        };
+        
+        // --- ESTADO DEL MODAL (temporal) ---
+        let modalState = {
+            currentListKey: null, // 'fragrance_aromas' o 'flavor_aromas'
+            currentCategory: null, 
+            currentL2: null
+        };
+
+        // --- FUNCIONES ---
+
+        // Actualiza el valor numérico del slider
+        function updateSlider(sliderId) {
+            const slider = document.getElementById(sliderId);
+            const output = document.getElementById(sliderId + '_val');
+            output.textContent = slider.value;
+            
+            // Determinar dónde guardar el valor
+            const isAffective = sliderId.includes('_final');
+            const section = isAffective ? 'affective' : 'descriptive';
+            
+            // La key en cuppingData no necesita 'name' o 'id'
+            let key = sliderId;
+            if (isAffective) {
+                 // e.g., 'fragrance_final'
+                key = sliderId;
+            } else {
+                // e.g., 'fragrance_intensity'
+                key = sliderId;
+            }
+            
+            cuppingData[section][key] = slider.value;
+            
+            // NUEVO: Llamar al cálculo si es un slider 'afectivo'
+            if (isAffective) {
+                calculateTotalScore();
+            }
+        }
+
+        // NUEVO: Actualiza el valor de las notas
+        function updateNotes(id) {
+            const textarea = document.getElementById(id);
+            const isAffective = id.includes('_final_');
+            
+            if (isAffective) {
+                cuppingData.affective[id] = textarea.value;
+            } else {
+                // Casos descriptivos
+                if (id === 'sweetness_notes') {
+                    cuppingData.descriptive.sweetness_notes = textarea.value;
+                } else if (id === 'part3_notes') {
+                    cuppingData.descriptive.part3_notes = textarea.value;
+                }
+            }
+        }
+        
+        // Muestra un mensaje temporal
+        function showLimitMessage() {
+            const msg = document.getElementById('limitMessage');
+            msg.classList.remove('hidden');
+            setTimeout(() => {
+                msg.classList.add('hidden');
+            }, 2000);
+        }
+
+        // Abre el modal de aromas
+        function openAromaModal(category, listKey) {
+            // Validar límite de 5 para la lista específica
+            if (cuppingData.descriptive[listKey].length >= 5) {
+                showLimitMessage();
+                return;
+            }
+            
+            modalState.currentListKey = listKey;
+            modalState.currentCategory = category;
+            
+            const modal = document.getElementById('aromaModal');
+            const modalHeader = document.getElementById('modalHeader');
+            const title = document.getElementById('modalTitle');
+            const l2List = document.getElementById('level2List');
+            const l3List = document.getElementById('level3List');
+            
+            const categoryData = aromaWheel[category];
+            
+             // Aplicar colores al modal
+            modalHeader.className = `p-4 border-b flex justify-between items-center transition-colors duration-300 ${categoryData.modalHeader}`;
+            title.className = `text-xl font-bold ${categoryData.modalTitleColor}`;
+            title.textContent = `Seleccionar: ${category}`;
+            
+            // Limpiar listas
+            l2List.innerHTML = '';
+            l3List.innerHTML = '<li class="text-gray-400 p-3 rounded-md">Seleccione una opción del Nivel 2</li>';
+            updateModalSelection();
+
+            // Poblar Nivel 2
+            const l2Categories = categoryData.sub;
+            for (const l2Name in l2Categories) {
+                const li = document.createElement('li');
+                li.textContent = l2Name;
+                // Aplicar colores y control de overflow
+                li.className = `p-3 rounded-md cursor-pointer break-words ${categoryData.modalBtnColor} ${categoryData.modalBtnText} ${categoryData.modalBtnHover}`;
+                li.onclick = () => selectL2(l2Name);
+                l2List.appendChild(li);
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        // Cierra el modal de aromas
+        function closeAromaModal() {
+            document.getElementById('aromaModal').classList.add('hidden');
+            modalState = { currentListKey: null, currentCategory: null, currentL2: null };
+            // Quitado el reset de clases, ya no es necesario
+        }
+        
+        // Selecciona un item de Nivel 2
+        function selectL2(l2Name) {
+            modalState.currentL2 = l2Name;
+            
+            const categoryData = aromaWheel[modalState.currentCategory];
+            const l3List = document.getElementById('level3List');
+            l3List.innerHTML = ''; // Limpiar
+            updateModalSelection();
+            
+            // Clases para los botones del modal
+            const baseClass = `p-3 rounded-md cursor-pointer break-words ${categoryData.modalBtnColor} ${categoryData.modalBtnText} ${categoryData.modalBtnHover}`;
+            const activeClass = `p-3 rounded-md cursor-pointer break-words ${categoryData.modalBtnHover.replace('hover:', '')} ${categoryData.modalBtnText}`;
+
+            // Resaltar selección L2
+            Array.from(document.getElementById('level2List').children).forEach(child => {
+                if (child.textContent === l2Name) {
+                    child.className = activeClass;
+                } else {
+                    child.className = baseClass;
+                }
+            });
+
+            // Poblar Nivel 3
+            const l3Items = aromaWheel[modalState.currentCategory].sub[l2Name];
+            for (const l3Name of l3Items) {
+                const li = document.createElement('li');
+                li.textContent = l3Name;
+                // Aplicar colores y control de overflow
+                li.className = baseClass;
+                li.onclick = () => selectL3(l3Name);
+                l3List.appendChild(li);
+            }
+        }
+        
+        // Selecciona un item de Nivel 3 (selección final)
+        function selectL3(l3Name) {
+            const { currentCategory, currentL2, currentListKey } = modalState;
+            
+            if (l3Name === 'Ninguno de estos') {
+                 if (aromaWheel[currentCategory].sub[currentL2].length > 1) { 
+                     addAroma(currentListKey, `${currentCategory} > ${currentL2}`, currentCategory);
+                 } else {
+                     addAroma(currentListKey, `${currentCategory} > ${currentL2}`, currentCategory);
+                 }
+            } else {
+                addAroma(currentListKey, `${currentCategory} > ${currentL2} > ${l3Name}`, currentCategory);
+            }
+
+            closeAromaModal();
+        }
+        
+        // Añade el aroma al estado y renderiza los tags
+        function addAroma(listKey, aromaString, category) {
+            if (cuppingData.descriptive[listKey].length < 5) {
+                cuppingData.descriptive[listKey].push({ text: aromaString, category: category });
+                renderTags(listKey);
+            }
+        }
+        
+        // Quita el aroma del estado y renderiza los tags
+        function removeAroma(listKey, aromaString) {
+            cuppingData.descriptive[listKey] = cuppingData.descriptive[listKey].filter(a => a.text !== aromaString);
+            renderTags(listKey);
+        }
+        
+        // Dibuja los tags de aromas seleccionados
+        function renderTags(listKey) {
+            const tagsContainer = document.getElementById(listKey === 'fragrance_aromas' ? 'fragrance_aroma_tags' : 'flavor_aroma_tags');
+            tagsContainer.innerHTML = ''; // Limpiar
+            
+            cuppingData.descriptive[listKey].forEach(aromaObj => {
+                const categoryData = aromaWheel[aromaObj.category];
+                const tag = document.createElement('div');
+                tag.className = `aroma-tag ${categoryData.tagColor} ${categoryData.tagTextColor}`;
+                tag.innerHTML = `
+                    <span class="aroma-tag-text">${aromaObj.text}</span>
+                    <button onclick="removeAroma('${listKey}', '${aromaObj.text.replace(/'/g, "\\'")}')" class="focus:outline-none">&times;</button>
+                `;
+                tagsContainer.appendChild(tag);
+            });
+        }
+
+        // Actualiza el texto de selección en el modal
+        function updateModalSelection() {
+            const { currentCategory, currentL2 } = modalState;
+            const selEl = document.getElementById('modalSelection');
+            if (!currentCategory) selEl.textContent = 'Selección: N/A';
+            else if (!currentL2) selEl.textContent = `Selección: ${currentCategory}`;
+            else selEl.textContent = `Selección: ${currentCategory} > ${currentL2}`;
+        }
+
+        // Dibuja la grilla de 9 botones de categorías
+        function renderAromaGrid(containerId, listKey) {
+            const gridContainer = document.getElementById(containerId);
+            gridContainer.innerHTML = ''; // Limpiar
+            
+            for (const category in aromaWheel) {
+                const categoryData = aromaWheel[category];
+                const button = document.createElement('button');
+                
+                button.textContent = category;
+                // Aplicar colores y h-full para altura uniforme
+                button.className = `aroma-btn p-3 rounded-lg font-semibold transition-colors duration-200 h-full ${categoryData.btnColor} ${categoryData.btnTextColor} ${categoryData.btnHover}`;
+                                
+                button.onclick = () => openAromaModal(category, listKey);
+                gridContainer.appendChild(button);
+            }
+        }
+        
+        // --- INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Dibuja ambas grillas
+            renderAromaGrid('fragrance_aroma_grid', 'fragrance_aromas');
+            renderAromaGrid('flavor_aroma_grid', 'flavor_aromas');
+
+            // === NUEVO: Listeners de Metadatos ===
+            const fechaInput = document.getElementById('catador_fecha');
+            fechaInput.valueAsDate = new Date(); // Pone la fecha de hoy
+            cuppingData.metadata.fecha = fechaInput.value; // Guarda el valor inicial
+            
+            fechaInput.addEventListener('input', (e) => {
+                cuppingData.metadata.fecha = e.target.value;
+            });
+            document.getElementById('catador_nombre').addEventListener('input', (e) => {
+                cuppingData.metadata.nombre = e.target.value;
+            });
+            document.getElementById('catador_cafe').addEventListener('input', (e) => {
+                cuppingData.metadata.cafe = e.target.value;
+            });
+            
+            // Listener del botón de exportar
+            document.getElementById('exportButton').addEventListener('click', exportToPDF);
+            // === FIN DE NUEVO ===
+
+            // --- Event Listeners para Defectos ---
+            document.querySelectorAll('input[name="non_uniform_cups"]').forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    cuppingData.affective.non_uniform_cups = 
+                        document.querySelectorAll('input[name="non_uniform_cups"]:checked').length;
+                    calculateTotalScore(); // NUEVO
+                });
+            });
+            
+            document.querySelectorAll('input[name="defective_cups"]').forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    cuppingData.affective.defective_cups = 
+                        document.querySelectorAll('input[name="defective_cups"]:checked').length;
+                    calculateTotalScore(); // NUEVO
+                });
+            });
+            
+            document.querySelectorAll('input[name="defect_type"]').forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    cuppingData.affective.defects = 
+                        Array.from(document.querySelectorAll('input[name="defect_type"]:checked'))
+                             .map(cb => cb.value);
+                    // No se necesita calcular score aquí
+                });
+            });
+
+            // NUEVO: Calcular puntaje inicial al cargar
+            calculateTotalScore();
+        });
+
+        // --- NUEVA FUNCIÓN DE CÁLCULO ---
+        const sliderValuePoints = {
+            '1': 0.00,
+            '2': 0.75,
+            '3': 1.25, // 0.75 + 0.50
+            '4': 2.00, // 1.25 + 0.75
+            '5': 2.75, // 2.00 + 0.75
+            '6': 3.25, // 2.75 + 0.50
+            '7': 4.00, // 3.25 + 0.75
+            '8': 4.50, // 4.00 + 0.50
+            '9': 5.25  // 4.50 + 0.75
+        };
+
+        function calculateTotalScore() {
+            const baseScore = 58.00;
+            let attributeScore = 0;
+            
+            // 1. Sumar puntos de sliders
+            const affectiveSliders = [
+                'fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final',
+                'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'
+            ];
+            
+            affectiveSliders.forEach(sliderId => {
+                // Asegurarse de que el valor existe antes de sumar
+                const sliderValue = cuppingData.affective[sliderId] || '1'; // Default a '1' si no está seteado
+                attributeScore += sliderValuePoints[sliderValue.toString()];
+            });
+            
+            // 2. Restar puntos de defectos
+            const nonUniformPoints = cuppingData.affective.non_uniform_cups * 2;
+            const defectivePoints = cuppingData.affective.defective_cups * 4;
+            const defectSubtraction = nonUniformPoints + defectivePoints;
+            
+            // 3. Calcular total
+            const totalScore = baseScore + attributeScore - defectSubtraction;
+            
+            // 4. Actualizar UI
+            document.getElementById('attribute_score_display').textContent = attributeScore.toFixed(2);
+            document.getElementById('defect_score_display').textContent = `-${defectSubtraction.toFixed(2)}`;
+            document.getElementById('total_score_display').textContent = totalScore.toFixed(2);
+        }
+
+        // --- NUEVA FUNCIÓN DE EXPORTAR PDF ---
+        function exportToPDF() {
+            const { nombre, cafe, fecha } = cuppingData.metadata;
+
+            // 1. Limpiar nombres para el archivo
+            const cleanNombre = nombre.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'catador';
+            const cleanCafe = cafe.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'cafe';
+            const cleanFecha = fecha.replace(/-/g, '') || 'fecha';
+            
+            const filename = `${cleanNombre}_${cleanCafe}_${cleanFecha}.pdf`;
+            
+            // 2. Obtener el elemento a exportar
+            const cuppingSheet = document.getElementById('cuppingSheetContainer');
+            
+            // 3. Mostrar estado de carga
+            const exportButton = document.getElementById('exportButton');
+            const originalButtonText = exportButton.innerHTML;
+            exportButton.disabled = true;
+            exportButton.innerHTML = 'Exportando...';
+
+            // 4. Usar html2canvas para renderizar el elemento
+            html2canvas(cuppingSheet, {
+                scale: 2 // Mejorar resolución
+            }).then(canvas => {
+                // 5. Usar jsPDF para crear el PDF
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                
+                // Dimensiones A4 en mm: 210w x 297h
+                const imgWidth = 210; // Ancho A4 en mm
+                const pageHeight = 297; // Alto A4 en mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+
+                const doc = new jsPDF('p', 'mm', 'a4');
+                let position = 0;
+
+                // Añadir la imagen (puede ocupar varias páginas)
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                // 6. Guardar el PDF
+                doc.save(filename);
+
+                // 7. Restaurar botón
+                exportButton.disabled = false;
+                exportButton.innerHTML = originalButtonText;
+            });
+        }
+
+
+    </script>
+
+    <!-- === AÑADIDO PARA PWA: Registro del Service Worker === -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registrado con éxito:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Fallo en el registro del ServiceWorker:', error);
+                    });
+            });
+        }
+    </script>
+    <!-- === FIN PWA === -->
+
+</body>
+</html>
