@@ -914,7 +914,7 @@
             document.getElementById('total_score_display').textContent = totalScore.toFixed(2);
         }
 
-        // --- FUNCIÓN DE EXPORTAR PDF ---
+        // --- FUNCIÓN DE EXPORTAR PDF (CORREGIDA) ---
         function exportToPDF() {
             const { nombre, cafe, fecha } = cuppingData.metadata;
 
@@ -935,38 +935,54 @@
             exportButton.disabled = true;
             exportButton.innerHTML = 'Exportando...';
 
-            html2canvas(cuppingSheet, {
-                scale: 2 
-            }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
-                const { jsPDF } = window.jspdf;
-                
-                const imgWidth = 210; 
-                const pageHeight = 297; 
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
+            // Añadimos un breve setTimeout para darle al navegador tiempo de 
+            // renderizar (pintar) todos los pasos que acabamos de hacer visibles.
+            setTimeout(() => {
+                html2canvas(cuppingSheet, {
+                    scale: 2,
+                    // Asegurarnos de que capture toda la altura del scroll
+                    height: cuppingSheet.scrollHeight,
+                    width: cuppingSheet.scrollWidth
+                }).then(canvas => {
+                    // --- INICIO DE LA CORRECCIÓN DE LÓGICA ---
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf; // Usar la librería importada
+                    
+                    // Dimensiones A4 en mm
+                    const imgWidth = 210; 
+                    const pageHeight = 297; 
+                    
+                    // Calcular dimensiones de la imagen
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    let heightLeft = imgHeight;
 
-                const doc = new jsPDF('p', 'mm', 'a4');
-                let position = 0;
+                    const doc = new jsPDF('p', 'mm', 'a4');
+                    let position = 0;
 
-                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    doc.addPage();
+                    // Añadir la primera página
                     doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
-                }
-                
-                doc.save(filename);
 
-                exportButton.disabled = false;
-                exportButton.innerHTML = originalButtonText;
+                    // Bucle para añadir páginas adicionales si es necesario
+                    while (heightLeft >= 0) {
+                      position = heightLeft - imgHeight;
+                      doc.addPage(); // Añadir nueva página
+                      doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight); // Añadir imagen en la nueva página
+                      heightLeft -= pageHeight;
+                    } // <-- Esta llave `}` faltaba y causaba el error
+                    
+                    // Guardar el PDF (fuera del bucle)
+                    doc.save(filename);
 
-                // Ocultar los pasos nuevamente y volver al paso actual
-                showStep(currentStep);
-            });
+                    // Restaurar el botón (fuera del bucle)
+                    exportButton.disabled = false;
+                    exportButton.innerHTML = originalButtonText;
+
+                    // Ocultar los pasos nuevamente y volver al paso actual (fuera del bucle)
+                    showStep(currentStep);
+                    // --- FIN DE LA CORRECCIÓN DE LÓGICA ---
+                });
+            }, 100); // 100ms es un retraso seguro
         }
 
     </script>
