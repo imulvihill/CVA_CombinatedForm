@@ -19,10 +19,8 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            /* Evita el "rebote" del scroll en iOS */
             overscroll-behavior: none;
         }
-        /* Estilo para los "tags" de aromas seleccionados */
         .aroma-tag {
             display: inline-flex;
             align-items: center;
@@ -46,31 +44,47 @@
             opacity: 0.7;
             flex-shrink: 0;
         }
+        /* Estilos para el acordeón */
+        .accordion-content {
+            transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .accordion-content.open {
+            max-height: 5000px; /* Un valor alto para permitir el contenido */
+            opacity: 1;
+            overflow: visible;
+        }
+        .accordion-header i {
+            transition: transform 0.3s ease;
+        }
+        .accordion-header.open i {
+            transform: rotate(90deg);
+        }
+
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 flex flex-col h-screen">
 
     <!-- Cabecera de la App (Fija) -->
-    <header class="p-4 bg-blue-800 text-white shadow-md">
+    <header class="p-4 bg-blue-800 text-white shadow-md z-10">
         <h1 class="text-xl font-bold text-center">SCA Coffee Value Assessment</h1>
     </header>
-
-    <!-- Barra de Progreso (Fija) -->
-    <div class="w-full bg-gray-200">
-        <div id="progressBar" class="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-r-full" style="width: 0%">
-            <span id="progressText">Paso 0 de 8</span>
-        </div>
-    </div>
 
     <!-- Contenedor principal de Pasos (con scroll) -->
     <!-- Este div contendrá el formulario completo para la exportación a PDF -->
     <div id="cuppingSheetContainer" class="flex-1 overflow-y-auto">
-        <main class="p-4 space-y-6">
+        <main class="p-4 space-y-3">
 
-            <!-- PASO 0: Metadatos -->
-            <div id="step-0" class="step-content space-y-4">
-                <h2 class="text-2xl font-semibold text-gray-700">Información de la Cata</h2>
-                <div class="space-y-4 p-4 bg-white rounded-lg shadow">
+            <!-- PASO 0: Metadatos (Acordeón) -->
+            <div class="accordion-item bg-white rounded-lg shadow">
+                <button class="accordion-header open w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">Información de la Cata</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content open p-4 pt-0 space-y-4">
+                    <!-- Contenido del Paso 0 -->
                     <div>
                         <label for="catador_nombre" class="block text-sm font-medium text-gray-700">Nombre (Catador):</label>
                         <input type="text" id="catador_nombre" class="w-full mt-1 p-2 border border-gray-300 rounded-md" placeholder="Tu nombre...">
@@ -87,338 +101,352 @@
             </div>
 
             <!-- PASO 1: Fragrance & Aroma -->
-            <div id="step-1" class="step-content hidden space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-700">Paso 1: Fragancia y Aroma</h2>
-                <!-- Parte Descriptiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-white shadow">
-                    <h3 class="text-lg font-bold">Descriptivo</h3>
-                    <div class="space-y-2">
-                        <label for="fragrance_intensity" class="flex justify-between items-center text-md font-medium">
-                            <span>Fragrance Intensity</span>
-                            <span id="fragrance_intensity_val" class="font-bold text-blue-600">7</span>
-                        </label>
-                        <input type="range" id="fragrance_intensity" name="fragrance_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('fragrance_intensity')">
-                    </div>
-                    <div class="space-y-2">
-                        <label for="aroma_intensity" class="flex justify-between items-center text-md font-medium">
-                            <span>Aroma Intensity</span>
-                            <span id="aroma_intensity_val" class="font-bold text-blue-600">7</span>
-                        </label>
-                        <input type="range" id="aroma_intensity" name="aroma_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aroma_intensity')">
-                    </div>
-                    <div class="space-y-3">
-                        <h4 class="text-md font-medium">Select up to five that apply:</h4>
-                        <div id="fragrance_aroma_tags" class="flex flex-wrap -m-1"></div>
-                        <div id="fragrance_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            <!-- Botones generados por JS -->
+            <div class="accordion-item bg-white rounded-lg shadow">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">Paso 1: Fragancia y Aroma</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <!-- Parte Descriptiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-white">
+                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                        <div class="space-y-2">
+                            <label for="fragrance_intensity" class="flex justify-between items-center text-md font-medium">
+                                <span>Fragrance Intensity</span>
+                                <span id="fragrance_intensity_val" class="font-bold text-blue-600">7</span>
+                            </label>
+                            <input type="range" id="fragrance_intensity" name="fragrance_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('fragrance_intensity')">
                         </div>
-                    </div>
-                </section>
-                <!-- Parte Afectiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 shadow">
-                    <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
-                    <div class="space-y-2">
-                        <label for="fragrance_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                            <span>Fragrance (Final)</span>
-                            <span id="fragrance_final_val" class="font-bold text-gray-700">5</span>
-                        </label>
-                        <input type="range" id="fragrance_final" name="fragrance_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('fragrance_final')">
-                    </div>
-                    <div class="space-y-2">
-                        <label for="aroma_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                            <span>Aroma (Final)</span>
-                            <span id="aroma_final_val" class="font-bold text-gray-700">5</span>
-                        </label>
-                        <input type="range" id="aroma_final" name="aroma_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aroma_final')">
-                    </div>
-                    <div class="space-y-2 mt-4">
-                        <label for="fragrance_aroma_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                        <textarea id="fragrance_aroma_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
-                    </div>
-                </section>
+                        <div class="space-y-2">
+                            <label for="aroma_intensity" class="flex justify-between items-center text-md font-medium">
+                                <span>Aroma Intensity</span>
+                                <span id="aroma_intensity_val" class="font-bold text-blue-600">7</span>
+                            </label>
+                            <input type="range" id="aroma_intensity" name="aroma_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aroma_intensity')">
+                        </div>
+                        <div class="space-y-3">
+                            <h4 class="text-md font-medium">Select up to five that apply:</h4>
+                            <div id="fragrance_aroma_tags" class="flex flex-wrap -m-1"></div>
+                            <div id="fragrance_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <!-- Botones generados por JS -->
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Parte Afectiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                        <div class="space-y-2">
+                            <label for="fragrance_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                                <span>Fragrance (Final)</span>
+                                <span id="fragrance_final_val" class="font-bold text-gray-700">5</span>
+                            </label>
+                            <input type="range" id="fragrance_final" name="fragrance_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('fragrance_final')">
+                        </div>
+                        <div class="space-y-2">
+                            <label for="aroma_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                                <span>Aroma (Final)</span>
+                                <span id="aroma_final_val" class="font-bold text-gray-700">5</span>
+                            </label>
+                            <input type="range" id="aroma_final" name="aroma_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aroma_final')">
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <label for="fragrance_aroma_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                            <textarea id="fragrance_aroma_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
             </div>
 
             <!-- PASO 2: Flavor & Aftertaste -->
-            <div id="step-2" class="step-content hidden space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-700">Paso 2: Sabor y Postgusto</h2>
-                <!-- Parte Descriptiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-white shadow">
-                    <h3 class="text-lg font-bold">Descriptivo</h3>
-                    <div class="space-y-2">
-                        <label for="flavor_intensity" class="flex justify-between items-center text-md font-medium">
-                            <span>Flavor Intensity</span>
-                            <span id="flavor_intensity_val" class="font-bold text-blue-600">7</span>
-                        </label>
-                        <input type="range" id="flavor_intensity" name="flavor_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('flavor_intensity')">
-                    </div>
-                    <div class="space-y-2">
-                        <label for="aftertaste_intensity" class="flex justify-between items-center text-md font-medium">
-                            <span>Aftertaste Intensity</span>
-                            <span id="aftertaste_intensity_val" class="font-bold text-blue-600">7</span>
-                        </label>
-                        <input type="range" id="aftertaste_intensity" name="aftertaste_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aftertaste_intensity')">
-                    </div>
-                    <div class="space-y-3">
-                        <h4 class="text-md font-medium">Select up to five that apply:</h4>
-                        <div id="flavor_aroma_tags" class="flex flex-wrap -m-1"></div>
-                        <div id="flavor_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            <!-- Botones generados por JS -->
+            <div class="accordion-item bg-white rounded-lg shadow">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">Paso 2: Sabor y Postgusto</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <!-- Parte Descriptiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-white">
+                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                        <div class="space-y-2">
+                            <label for="flavor_intensity" class="flex justify-between items-center text-md font-medium">
+                                <span>Flavor Intensity</span>
+                                <span id="flavor_intensity_val" class="font-bold text-blue-600">7</span>
+                            </label>
+                            <input type="range" id="flavor_intensity" name="flavor_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('flavor_intensity')">
                         </div>
-                    </div>
-                    <div class="space-y-3">
-                        <h4 class="text-md font-medium">Main Tastes (select up to 2)</h4>
-                        <div class="flex flex-wrap gap-x-4 gap-y-2">
-                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="salty" class="form-checkbox h-5 w-5"> Salty</label>
-                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="sour" class="form-checkbox h-5 w-5"> Sour</label>
-                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="sweet" class="form-checkbox h-5 w-5"> Sweet</label>
-                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="bitter" class="form-checkbox h-5 w-5"> Bitter</label>
-                            <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="umami" class="form-checkbox h-5 w-5"> Umami</label>
+                        <div class="space-y-2">
+                            <label for="aftertaste_intensity" class="flex justify-between items-center text-md font-medium">
+                                <span>Aftertaste Intensity</span>
+                                <span id="aftertaste_intensity_val" class="font-bold text-blue-600">7</span>
+                            </label>
+                            <input type="range" id="aftertaste_intensity" name="aftertaste_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aftertaste_intensity')">
                         </div>
-                    </div>
-                </section>
-                <!-- Parte Afectiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 shadow">
-                    <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
-                    <div class="space-y-2">
-                        <label for="flavor_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                            <span>Flavor (Final)</span>
-                            <span id="flavor_final_val" class="font-bold text-gray-700">5</span>
-                        </label>
-                        <input type="range" id="flavor_final" name="flavor_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('flavor_final')">
-                    </div>
-                    <div class="space-y-2">
-                        <label for="aftertaste_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                            <span>Aftertaste (Final)</span>
-                            <span id="aftertaste_final_val" class="font-bold text-gray-700">5</span>
-                        </label>
-                        <input type="range" id="aftertaste_final" name="aftertaste_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aftertaste_final')">
-                    </div>
-                    <div class="space-y-2 mt-4">
-                        <label for="flavor_aftertaste_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                        <textarea id="flavor_aftertaste_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
-                    </div>
-                </section>
-            </div>
-            
-            <!-- PASO 3: Acidity -->
-            <div id="step-3" class="step-content hidden space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-700">Paso 3: Acidez</h2>
-                <!-- Parte Descriptiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-white shadow">
-                    <h3 class="text-lg font-bold">Descriptivo</h3>
-                    <div class="space-y-2">
-                        <label for="acidity_intensity" class="flex justify-between items-center text-md font-medium">
-                            <span>Acidity Intensity</span>
-                            <span id="acidity_intensity_val" class="font-bold text-blue-600">7</span>
-                        </label>
-                        <input type="range" id="acidity_intensity" name="acidity_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('acidity_intensity')">
-                    </div>
-                    <div class="space-y-2">
-                        <h4 class="text-md font-medium">Select one:</h4>
-                        <div class="flex flex-col space-y-2">
-                            <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><input type="radio" name="acidity_type" value="dry" class="form-radio h-5 w-5"> Dry Acidity (Herby, Grassy, Tart)</label>
-                            <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><input type="radio" name="acidity_type" value="sweet" class="form-radio h-5 w-5"> Sweet Acidity (Juicy, Fruit-like, Bright)</label>
-                        </div>
-                    </div>
-                </section>
-                <!-- Parte Afectiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 shadow">
-                    <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
-                    <div class="space-y-2">
-                        <label for="acidity_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                            <span>Acidity (Final)</span>
-                            <span id="acidity_final_val" class="font-bold text-gray-700">5</span>
-                        </label>
-                        <input type="range" id="acidity_final" name="acidity_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('acidity_final')">
-                    </div>
-                    <div class="space-y-2 mt-4">
-                        <label for="acidity_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                        <textarea id="acidity_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
-                    </div>
-                </section>
-            </div>
-            
-            <!-- PASO 4: Sweetness -->
-            <div id="step-4" class="step-content hidden space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-700">Paso 4: Dulzura</h2>
-                <!-- Parte Descriptiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-white shadow">
-                    <h3 class="text-lg font-bold">Descriptivo</h3>
-                    <div class="space-y-2">
-                        <label for="sweetness_intensity" class="flex justify-between items-center text-md font-medium">
-                            <span>Sweetness Intensity</span>
-                            <span id="sweetness_intensity_val" class="font-bold text-blue-600">7</span>
-                        </label>
-                        <input type="range" id="sweetness_intensity" name="sweetness_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('sweetness_intensity')">
-                    </div>
-                    <div class="space-y-2">
-                         <h4 class="text-md font-medium">Notes (optional):</h4>
-                         <textarea id="sweetness_notes" rows="2" class="w-full p-2 border rounded-md bg-gray-50" placeholder="e.g., Honey-like, Caramel..." oninput="updateNotes(this.id)"></textarea>
-                    </div>
-                </section>
-                <!-- Parte Afectiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 shadow">
-                    <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
-                    <div class="space-y-2">
-                        <label for="sweetness_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                            <span>Sweetness (Final)</span>
-                            <span id="sweetness_final_val" class="font-bold text-gray-700">5</span>
-                        </label>
-                        <input type="range" id="sweetness_final" name="sweetness_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('sweetness_final')">
-                    </div>
-                    <div class="space-y-2 mt-4">
-                        <label for="sweetness_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                        <textarea id="sweetness_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
-                    </div>
-                </section>
-            </div>
-            
-            <!-- PASO 5: Mouthfeel -->
-            <div id="step-5" class="step-content hidden space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-700">Paso 5: Cuerpo (Mouthfeel)</h2>
-                <!-- Parte Descriptiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-white shadow">
-                    <h3 class="text-lg font-bold">Descriptivo</h3>
-                    <div class="space-y-2">
-                        <label for="mouthfeel_intensity" class="flex justify-between items-center text-md font-medium">
-                            <span>Mouthfeel Intensity</span>
-                            <span id="mouthfeel_intensity_val" class="font-bold text-blue-600">7</span>
-                        </label>
-                        <input type="range" id="mouthfeel_intensity" name="mouthfeel_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('mouthfeel_intensity')">
-                    </div>
-                    <div class="space-y-2">
-                        <h4 class="text-md font-medium">Select up to two:</h4>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="rough" class="form-checkbox h-5 w-5"> Rough</label>
-                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="oily" class="form-checkbox h-5 w-5"> Oily</label>
-                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="smooth" class="form-checkbox h-5 w-5"> Smooth</label>
-                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="mouth-drying" class="form-checkbox h-5 w-5"> Mouth-drying</label>
-                            <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="metallic" class="form-checkbox h-5 w-5"> Metallic</label>
-                        </div>
-                    </div>
-                </section>
-                <!-- Parte Afectiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 shadow">
-                    <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
-                    <div class="space-y-2">
-                        <label for="mouthfeel_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                            <span>Mouthfeel (Final)</span>
-                            <span id="mouthfeel_final_val" class="font-bold text-gray-700">5</span>
-                        </label>
-                        <input type="range" id="mouthfeel_final" name="mouthfeel_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('mouthfeel_final')">
-                    </div>
-                    <div class="space-y-2 mt-4">
-                        <label for="mouthfeel_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                        <textarea id="mouthfeel_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
-                    </div>
-                </section>
-            </div>
-            
-            <!-- PASO 6: Overall & Defects -->
-            <div id="step-6" class="step-content hidden space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-700">Paso 6: Overall y Defectos</h2>
-                <!-- Parte Descriptiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-white shadow">
-                    <h3 class="text-lg font-bold">PART 3: EXTRINSIC ASSESSMENT</h3>
-                    <div class="space-y-2">
-                         <h4 class="text-md font-medium">Notes (optional):</h4>
-                         <textarea id="part3_notes" rows="3" class="w-full p-2 border rounded-md bg-gray-50" placeholder="Overall impression, notes..." oninput="updateNotes(this.id)"></textarea>
-                    </div>
-                </section>
-                <!-- Parte Afectiva -->
-                <section class="border rounded-lg p-4 space-y-4 bg-gray-50 shadow">
-                    <h3 class="text-lg font-bold">Afectivo (Puntuación y Defectos)</h3>
-                    <div class="space-y-2">
-                        <label for="overall_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                            <span>Overall (Final)</span>
-                            <span id="overall_final_val" class="font-bold text-gray-700">5</span>
-                        </label>
-                        <input type="range" id="overall_final" name="overall_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('overall_final')">
-                    </div>
-
-                    <!-- Bloque de Defectos -->
-                    <div class="space-y-3 pt-4 mt-4 border-t border-gray-200">
-                        <div>
-                            <h4 class="text-md font-medium text-gray-700">NON-UNIFORM CUPS</h4>
-                            <div class="flex items-center space-x-2 mt-1">
-                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
-                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
-                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
-                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
-                                <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
+                        <div class="space-y-3">
+                            <h4 class="text-md font-medium">Select up to five that apply:</h4>
+                            <div id="flavor_aroma_tags" class="flex flex-wrap -m-1"></div>
+                            <div id="flavor_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <!-- Botones generados por JS -->
                             </div>
                         </div>
-                        <div>
-                            <h4 class="text-md font-medium text-gray-700">DEFECTIVE CUPS</h4>
-                            <div class="flex items-center space-x-2 mt-1">
-                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
+                        <div class="space-y-3">
+                            <h4 class="text-md font-medium">Main Tastes (select up to 2)</h4>
+                            <div class="flex flex-wrap gap-x-4 gap-y-2">
+                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="salty" class="form-checkbox h-5 w-5"> Salty</label>
+                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="sour" class="form-checkbox h-5 w-5"> Sour</label>
+                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="sweet" class="form-checkbox h-5 w-5"> Sweet</label>
+                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="bitter" class="form-checkbox h-5 w-5"> Bitter</label>
+                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="umami" class="form-checkbox h-5 w-5"> Umami</label>
                             </div>
                         </div>
-                        <div>
-                            <h4 class="text-md font-medium text-gray-700">DEFECT (IF ANY)</h4>
-                            <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
-                                <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="moldy" class="form-checkbox h-5 w-5"> MOLDY</label>
-                                <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="potato" class="form-checkbox h-5 w-5"> POTATO</label>
-                                <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="phenolic" class="form-checkbox h-5 w-5"> PHENOLIC</label>
-                            </div>
+                    </section>
+                    <!-- Parte Afectiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                        <div class="space-y-2">
+                            <label for="flavor_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                                <span>Flavor (Final)</span>
+                                <span id="flavor_final_val" class="font-bold text-gray-700">5</span>
+                            </label>
+                            <input type="range" id="flavor_final" name="flavor_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('flavor_final')">
                         </div>
-                    </div>
-                    
-                    <div class="space-y-2 mt-4">
-                        <label for="overall_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                        <textarea id="overall_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
-                    </div>
-                </section>
-            </div>
-
-            <!-- PASO 7: Total Score & Export -->
-            <div id="step-7" class="step-content hidden space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-700">Paso 7: Puntuación Final</h2>
-                
-                <footer class="p-6 bg-blue-800 text-white rounded-lg">
-                    <h2 class="text-2xl font-bold mb-4">Total Score</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                        <div class="bg-blue-700 p-4 rounded-lg">
-                            <span class="text-sm font-medium text-blue-200 block">Attribute Score</span>
-                            <span id="attribute_score_display" class="text-3xl font-bold">0.00</span>
+                        <div class="space-y-2">
+                            <label for="aftertaste_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                                <span>Aftertaste (Final)</span>
+                                <span id="aftertaste_final_val" class="font-bold text-gray-700">5</span>
+                            </label>
+                            <input type="range" id="aftertaste_final" name="aftertaste_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aftertaste_final')">
                         </div>
-                        <div class="bg-blue-700 p-4 rounded-lg">
-                            <span class="text-sm font-medium text-blue-200 block">Defect Subtraction</span>
-                            <span id="defect_score_display" class="text-3xl font-bold">0.00</span>
+                        <div class="space-y-2 mt-4">
+                            <label for="flavor_aftertaste_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                            <textarea id="flavor_aftertaste_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
                         </div>
-                        <div class="bg-white text-blue-900 p-4 rounded-lg shadow-inner">
-                            <span class="text-sm font-medium text-blue-700 block">Final Score (Base 58.00)</span>
-                            <span id="total_score_display" class="text-4xl font-extrabold">58.00</span>
-                        </div>
-                    </div>
-                </footer>
-
-                <div class="p-4 bg-white rounded-lg shadow space-y-4 text-center">
-                    <h3 class="text-lg font-bold">Exportar Hoja de Cata</h3>
-                    <p class="text-gray-600">Una vez exportado, el PDF se guardará en tus descargas.</p>
-                    <button id="exportButton" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
-                        <i class="fas fa-file-pdf"></i>
-                        <span>Exportar a PDF</span>
-                    </button>
+                    </section>
                 </div>
+            </div>
+
+            <!-- PASO 3: Acidity -->
+            <div class="accordion-item bg-white rounded-lg shadow">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">Paso 3: Acidez</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <!-- Parte Descriptiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-white">
+                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                        <div class="space-y-2">
+                            <label for="acidity_intensity" class="flex justify-between items-center text-md font-medium">
+                                <span>Acidity Intensity</span>
+                                <span id="acidity_intensity_val" class="font-bold text-blue-600">7</span>
+                            </label>
+                            <input type="range" id="acidity_intensity" name="acidity_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('acidity_intensity')">
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-md font-medium">Select one:</h4>
+                            <div class="flex flex-col space-y-2">
+                                <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><input type="radio" name="acidity_type" value="dry" class="form-radio h-5 w-5"> Dry Acidity (Herby, Grassy, Tart)</label>
+                                <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><input type="radio" name="acidity_type" value="sweet" class="form-radio h-5 w-5"> Sweet Acidity (Juicy, Fruit-like, Bright)</label>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Parte Afectiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                        <div class="space-y-2">
+                            <label for="acidity_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                                <span>Acidity (Final)</span>
+                                <span id="acidity_final_val" class="font-bold text-gray-700">5</span>
+                            </label>
+                            <input type="range" id="acidity_final" name="acidity_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('acidity_final')">
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <label for="acidity_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                            <textarea id="acidity_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- PASO 4: Sweetness -->
+            <div class="accordion-item bg-white rounded-lg shadow">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">Paso 4: Dulzura</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <!-- Parte Descriptiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-white">
+                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                        <div class="space-y-2">
+                            <label for="sweetness_intensity" class="flex justify-between items-center text-md font-medium">
+                                <span>Sweetness Intensity</span>
+                                <span id="sweetness_intensity_val" class="font-bold text-blue-600">7</span>
+                            </label>
+                            <input type="range" id="sweetness_intensity" name="sweetness_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('sweetness_intensity')">
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-md font-medium">Notes (optional):</h4>
+                            <textarea id="sweetness_notes" rows="2" class="w-full p-2 border rounded-md bg-gray-50" placeholder="e.g., Honey-like, Caramel..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                    <!-- Parte Afectiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                        <div class="space-y-2">
+                            <label for="sweetness_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                                <span>Sweetness (Final)</span>
+                                <span id="sweetness_final_val" class="font-bold text-gray-700">5</span>
+                            </label>
+                            <input type="range" id="sweetness_final" name="sweetness_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('sweetness_final')">
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <label for="sweetness_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                            <textarea id="sweetness_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- PASO 5: Mouthfeel -->
+            <div class="accordion-item bg-white rounded-lg shadow">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">Paso 5: Cuerpo (Mouthfeel)</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <!-- Parte Descriptiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-white">
+                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                        <div class="space-y-2">
+                            <label for="mouthfeel_intensity" class="flex justify-between items-center text-md font-medium">
+                                <span>Mouthfeel Intensity</span>
+                                <span id="mouthfeel_intensity_val" class="font-bold text-blue-600">7</span>
+                            </label>
+                            <input type="range" id="mouthfeel_intensity" name="mouthfeel_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('mouthfeel_intensity')">
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-md font-medium">Select up to two:</h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="rough" class="form-checkbox h-5 w-5"> Rough</label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="oily" class="form-checkbox h-5 w-5"> Oily</label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="smooth" class="form-checkbox h-5 w-5"> Smooth</label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="mouth-drying" class="form-checkbox h-5 w-5"> Mouth-drying</label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="metallic" class="form-checkbox h-5 w-5"> Metallic</label>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Parte Afectiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                        <div class="space-y-2">
+                            <label for="mouthfeel_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                                <span>Mouthfeel (Final)</span>
+                                <span id="mouthfeel_final_val" class="font-bold text-gray-700">5</span>
+                            </label>
+                            <input type="range" id="mouthfeel_final" name="mouthfeel_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('mouthfeel_final')">
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <label for="mouthfeel_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                            <textarea id="mouthfeel_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- PASO 6: Overall & Defects -->
+            <div class="accordion-item bg-white rounded-lg shadow">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">Paso 6: Overall y Defectos</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <!-- Parte Descriptiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-white">
+                        <h3 class="text-lg font-bold">PART 3: EXTRINSIC ASSESSMENT</h3>
+                        <div class="space-y-2">
+                            <h4 class="text-md font-medium">Notes (optional):</h4>
+                            <textarea id="part3_notes" rows="3" class="w-full p-2 border rounded-md bg-gray-50" placeholder="Overall impression, notes..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                    <!-- Parte Afectiva -->
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <h3 class="text-lg font-bold">Afectivo (Puntuación y Defectos)</h3>
+                        <div class="space-y-2">
+                            <label for="overall_final" class="flex justify-between items-center text-md font-medium text-gray-700">
+                                <span>Overall (Final)</span>
+                                <span id="overall_final_val" class="font-bold text-gray-700">5</span>
+                            </label>
+                            <input type="range" id="overall_final" name="overall_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('overall_final')">
+                        </div>
+
+                        <!-- Bloque de Defectos -->
+                        <div class="space-y-3 pt-4 mt-4 border-t border-gray-200">
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700">NON-UNIFORM CUPS</h4>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700">DEFECTIVE CUPS</h4>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700">DEFECT (IF ANY)</h4>
+                                <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="moldy" class="form-checkbox h-5 w-5"> MOLDY</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="potato" class="form-checkbox h-5 w-5"> POTATO</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="phenolic" class="form-checkbox h-5 w-5"> PHENOLIC</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label for="overall_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
+                            <textarea id="overall_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            
+            <!-- PASO 7: Exportar (ya no es un paso, es parte del footer) -->
+            <div class="p-4 bg-white rounded-lg shadow space-y-4 text-center">
+                <h3 class="text-lg font-bold">Exportar Hoja de Cata</h3>
+                <p class="text-gray-600">Una vez exportado, el PDF se guardará en tus descargas.</p>
+                <button id="exportButton" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Exportar a PDF</span>
+                </button>
             </div>
 
         </main>
     </div> <!-- Fin del cuppingSheetContainer (para PDF) -->
 
-    <!-- Navegación Fija (Footer) -->
-    <footer class="p-4 bg-white border-t border-gray-200 shadow-inner grid grid-cols-2 gap-4">
-        <button id="prevButton" class="py-3 px-4 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            Anterior
-        </button>
-        <button id="nextButton" class="py-3 px-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50">
-            Siguiente
-        </button>
+    <!-- Puntuación Fija (Footer) -->
+    <footer class="p-4 bg-blue-800 text-white shadow-inner grid grid-cols-3 gap-2 z-10">
+        <div class="text-center">
+            <span class="text-xs font-medium text-blue-200 block">Attribute</span>
+            <span id="attribute_score_display" class="text-xl font-bold">0.00</span>
+        </div>
+        <div class="text-center">
+            <span class="text-xs font-medium text-blue-200 block">Defects</span>
+            <span id="defect_score_display" class="text-xl font-bold">0.00</span>
+        </div>
+        <div class="text-center border-l border-blue-600">
+            <span class="text-xs font-medium text-blue-200 block">Final Score</span>
+            <span id="total_score_display" class="text-2xl font-extrabold">58.00</span>
+        </div>
     </footer>
 
 
@@ -461,67 +489,45 @@
 
     <script>
         // =============================================
-        // === LÓGICA DE NAVEGACIÓN POR PASOS ===
+        // === LÓGICA DE NAVEGACIÓN (ACORDEÓN) ===
         // =============================================
         
-        let currentStep = 0;
-        const totalSteps = 8; // 0-7
-        const steps = document.querySelectorAll('.step-content');
-        const prevButton = document.getElementById('prevButton');
-        const nextButton = document.getElementById('nextButton');
-        const progressBar = document.getElementById('progressBar');
-        const progressText = document.getElementById('progressText');
-        
-        function showStep(stepIndex) {
-            // Ocultar todos los pasos
-            steps.forEach((step, index) => {
-                if (index === stepIndex) {
-                    step.classList.remove('hidden');
-                } else {
-                    step.classList.add('hidden');
-                }
+        function initAccordion() {
+            const headers = document.querySelectorAll('.accordion-header');
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('i');
+
+                    // Toggle
+                    header.classList.toggle('open');
+                    content.classList.toggle('open');
+                    
+                    // Update icon
+                    if (content.classList.contains('open')) {
+                        icon.classList.remove('fa-chevron-right');
+                        icon.classList.add('fa-chevron-down');
+                    } else {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-right');
+                    }
+                });
             });
 
-            // Actualizar barra de progreso
-            const progressPercent = (stepIndex / (totalSteps - 1)) * 100;
-            progressBar.style.width = `${progressPercent}%`;
-            progressText.textContent = `Paso ${stepIndex} de ${totalSteps - 1}`;
+            // Abrir el primer item (Metadatos) por defecto
+            const firstHeader = document.querySelector('.accordion-header');
+            const firstContent = firstHeader.nextElementSibling;
+            const firstIcon = firstHeader.querySelector('i');
             
-            // Actualizar botones
-            prevButton.disabled = stepIndex === 0;
-            
-            if (stepIndex === totalSteps - 1) {
-                // Último paso (Resumen)
-                nextButton.textContent = 'Finalizar';
-                nextButton.disabled = true; // Deshabilitar para evitar confusiones
-                // Recalcular el score por si acaso
-                calculateTotalScore();
-            } else {
-                nextButton.textContent = 'Siguiente';
-                nextButton.disabled = false;
-            }
-
-            // Scroll al inicio de la página
-            document.getElementById('cuppingSheetContainer').scrollTop = 0;
+            firstHeader.classList.add('open');
+            firstContent.classList.add('open');
+            firstIcon.classList.remove('fa-chevron-right');
+            firstIcon.classList.add('fa-chevron-down');
         }
-
-        prevButton.addEventListener('click', () => {
-            if (currentStep > 0) {
-                currentStep--;
-                showStep(currentStep);
-            }
-        });
-
-        nextButton.addEventListener('click', () => {
-            if (currentStep < totalSteps - 1) {
-                currentStep++;
-                showStep(currentStep);
-            }
-        });
 
 
         // =============================================
-        // === LÓGICA DE LA APP (sin cambios) ===
+        // === LÓGICA DE LA APP (Sin cambios) ===
         // =============================================
 
         // --- BASE DE DATOS DE LA RUEDA DE AROMAS (con colores) ---
@@ -829,8 +835,8 @@
         
         // --- INICIALIZACIÓN ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Mostrar el primer paso
-            showStep(currentStep);
+            // Activar el acordeón
+            initAccordion();
 
             // Dibuja ambas grillas
             renderAromaGrid('fragrance_aroma_grid', 'fragrance_aromas');
@@ -915,7 +921,8 @@
         }
 
         // --- FUNCIÓN DE EXPORTAR PDF (CORREGIDA) ---
-        function exportToPDF() {
+        // Convertida a async para manejar el bucle de 'await html2canvas'
+        async function exportToPDF() {
             const { nombre, cafe, fecha } = cuppingData.metadata;
 
             const cleanNombre = nombre.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'catador';
@@ -924,65 +931,98 @@
             
             const filename = `${cleanNombre}_${cleanCafe}_${cleanFecha}.pdf`;
             
-            // Elemento a exportar
-            const cuppingSheet = document.getElementById('cuppingSheetContainer');
+            // === INICIO DE LA CORRECCIÓN DE PDF (1 PÁGINA POR PASO) ===
             
-            // Mostrar todos los pasos para la captura
-            steps.forEach(step => step.classList.remove('hidden'));
-
+            // 1. Elementos a capturar (todos los items del acordeón)
+            const items = document.querySelectorAll('.accordion-item');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4'); // A4: 210mm x 297mm
+            const imgWidth = 210; 
+            const pageHeight = 297; 
+            
+            // 2. Elemento del botón (para saltarlo y manejar el estado)
+            const exportSection = document.querySelector('.accordion-item:last-child');
             const exportButton = document.getElementById('exportButton');
             const originalButtonText = exportButton.innerHTML;
             exportButton.disabled = true;
             exportButton.innerHTML = 'Exportando...';
 
-            // Añadimos un breve setTimeout para darle al navegador tiempo de 
-            // renderizar (pintar) todos los pasos que acabamos de hacer visibles.
-            setTimeout(() => {
-                html2canvas(cuppingSheet, {
+            // 3. Bucle asíncrono: 1 página por item
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                
+                // No incluir el último panel (el de exportar) en el PDF
+                if (item === exportSection) {
+                    continue;
+                }
+
+                const content = item.querySelector('.accordion-content');
+                const header = item.querySelector('.accordion-header');
+                const icon = header.querySelector('i');
+                const wasOpen = content.classList.contains('open');
+
+                // Forzar apertura para la captura
+                content.classList.add('open');
+                header.classList.add('open');
+                content.style.maxHeight = 'none'; // Quitar límite de altura
+                if (icon) {
+                    icon.classList.remove('fa-chevron-right');
+                    icon.classList.add('fa-chevron-down');
+                }
+
+                // Esperar que el DOM se pinte (pequeña demora)
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                // Capturar el canvas del item
+                const canvas = await html2canvas(item, {
                     scale: 2,
-                    // Asegurarnos de que capture toda la altura del scroll
-                    height: cuppingSheet.scrollHeight,
-                    width: cuppingSheet.scrollWidth
-                }).then(canvas => {
-                    // --- INICIO DE LA CORRECCIÓN DE LÓGICA ---
-                    const imgData = canvas.toDataURL('image/png');
-                    const { jsPDF } = window.jspdf; // Usar la librería importada
-                    
-                    // Dimensiones A4 en mm
-                    const imgWidth = 210; 
-                    const pageHeight = 297; 
-                    
-                    // Calcular dimensiones de la imagen
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    let heightLeft = imgHeight;
-
-                    const doc = new jsPDF('p', 'mm', 'a4');
-                    let position = 0;
-
-                    // Añadir la primera página
-                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-
-                    // Bucle para añadir páginas adicionales si es necesario
-                    while (heightLeft >= 0) {
-                      position = heightLeft - imgHeight;
-                      doc.addPage(); // Añadir nueva página
-                      doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight); // Añadir imagen en la nueva página
-                      heightLeft -= pageHeight;
-                    } // <-- Esta llave `}` faltaba y causaba el error
-                    
-                    // Guardar el PDF (fuera del bucle)
-                    doc.save(filename);
-
-                    // Restaurar el botón (fuera del bucle)
-                    exportButton.disabled = false;
-                    exportButton.innerHTML = originalButtonText;
-
-                    // Ocultar los pasos nuevamente y volver al paso actual (fuera del bucle)
-                    showStep(currentStep);
-                    // --- FIN DE LA CORRECCIÓN DE LÓGICA ---
+                    backgroundColor: '#ffffff' // Forzar fondo blanco
                 });
-            }, 100); // 100ms es un retraso seguro
+                
+                const imgData = canvas.toDataURL('image/png');
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // Añadir la imagen al PDF
+                // Controlar si la imagen es más alta que una página
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                  position = heightLeft - imgHeight;
+                  doc.addPage();
+                  doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                  heightLeft -= pageHeight;
+                }
+
+                // Añadir una nueva página (si no es el último item)
+                // (El -2 es porque saltamos el último item de 'exportar')
+                if (i < items.length - 2) {
+                    doc.addPage();
+                }
+
+                // Restaurar estado original
+                content.style.maxHeight = ''; // Restaurar CSS
+                if (!wasOpen) {
+                    content.classList.remove('open');
+                    header.classList.remove('open');
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-right');
+                    }
+                }
+            } // Fin del bucle
+
+            // 4. Guardar el documento PDF
+            doc.save(filename);
+
+            // 5. Restaurar el estado original del botón
+            exportButton.disabled = false;
+            exportButton.innerHTML = originalButtonText;
+            
+            // === FIN DE LA CORRECCIÓN DE PDF ===
         }
 
     </script>
