@@ -4,1044 +4,786 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCA Coffee Cupping App</title>
-    <!-- Incluimos Tailwind CSS -->
+    
+    <!-- PWA Manifest y Tema -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e40af">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/1e40af/FFFFFF?text=SCA">
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Dependencias para PDF y Iconos -->
+    <!-- Dependencias: Iconos y PDF -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb"> 
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            overscroll-behavior: none;
-        }
+        body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
+        
+        /* Tags de Aromas */
         .aroma-tag {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            margin: 4px;
-            border-radius: 16px;
-            font-size: 0.875rem; /* 14px */
-            font-weight: 500;
-            max-width: 100%; 
+            display: inline-flex; align-items: center; padding: 4px 10px; margin: 4px;
+            border-radius: 16px; font-size: 0.875rem; font-weight: 500; max-width: 100%; 
         }
-        .aroma-tag-text {
-            flex-grow: 1;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            word-break: break-word;
-            white-space: normal;
-        }
-        .aroma-tag button {
-            margin-left: 8px;
-            font-weight: bold;
-            opacity: 0.7;
-            flex-shrink: 0;
-        }
-        /* Estilos para el acordeón */
+        .aroma-tag-text { flex-grow: 1; word-wrap: break-word; white-space: normal; }
+        .aroma-tag button { margin-left: 8px; font-weight: bold; opacity: 0.7; flex-shrink: 0; }
+
+        /* Acordeón */
         .accordion-content {
             transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
+            max-height: 0; opacity: 0; overflow: hidden;
         }
         .accordion-content.open {
-            max-height: 5000px; /* Un valor alto para permitir el contenido */
-            opacity: 1;
-            overflow: visible;
+            max-height: 5000px; opacity: 1; overflow: visible;
         }
-        .accordion-header i {
-            transition: transform 0.3s ease;
-        }
-        .accordion-header.open i {
-            transform: rotate(90deg);
-        }
+        .accordion-header i { transition: transform 0.3s ease; }
+        .accordion-header.open i { transform: rotate(90deg); }
 
+        /* Estilos para Tabs */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 flex flex-col h-screen">
 
-    <!-- Cabecera de la App (Fija) -->
-    <header class="p-4 bg-blue-800 text-white shadow-md z-10">
-        <h1 class="text-xl font-bold text-center">SCA Coffee Value Assessment</h1>
+    <!-- Cabecera Fija -->
+    <header class="bg-blue-800 text-white shadow-md z-10 flex flex-col">
+        <div class="p-3 text-center">
+            <h1 class="text-lg font-bold">SCA Coffee Value by Penguin Coffee Roasters</h1>
+        </div>
+
+        <!-- BARRA DE PESTAÑAS -->
+        <div class="flex items-end px-2 space-x-1 overflow-x-auto no-scrollbar select-none" id="tabsContainer">
+            <!-- Las pestañas se generarán aquí con JS -->
+        </div>
     </header>
 
-    <!-- Contenedor principal de Pasos (con scroll) -->
-    <!-- Este div contendrá el formulario completo para la exportación a PDF -->
-    <div id="cuppingSheetContainer" class="flex-1 overflow-y-auto">
-        <main class="p-4 space-y-3">
+    <!-- Contenedor Principal (Scrollable) -->
+    <div id="cuppingSheetContainer" class="flex-1 overflow-y-auto bg-gray-50">
+        <main class="p-4 space-y-3 pb-24"> <!-- Padding bottom extra para el footer -->
 
-            <!-- PASO 0: Metadatos (Acordeón) -->
-            <div class="accordion-item bg-white rounded-lg shadow">
+            <!-- PASO 0: Información -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
                 <button class="accordion-header open w-full flex justify-between items-center p-4 text-left">
                     <h2 class="text-xl font-semibold text-gray-700">Información de la Cata</h2>
-                    <i class="fas fa-chevron-right text-blue-600"></i>
+                    <i class="fas fa-chevron-down text-blue-600"></i>
                 </button>
                 <div class="accordion-content open p-4 pt-0 space-y-4">
-                    <!-- Contenido del Paso 0 -->
                     <div>
-                        <label for="catador_nombre" class="block text-sm font-medium text-gray-700">Nombre (Catador):</label>
-                        <input type="text" id="catador_nombre" class="w-full mt-1 p-2 border border-gray-300 rounded-md" placeholder="Tu nombre...">
+                        <label class="block text-sm font-medium text-gray-700">Nombre (Catador):</label>
+                        <input type="text" id="catador_nombre" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Tu nombre...">
                     </div>
                     <div>
-                        <label for="catador_fecha" class="block text-sm font-medium text-gray-700">Fecha:</label>
-                        <input type="date" id="catador_fecha" class="w-full mt-1 p-2 border border-gray-300 rounded-md">
+                        <label class="block text-sm font-medium text-gray-700">Fecha:</label>
+                        <input type="date" id="catador_fecha" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                     <div>
-                        <label for="catador_cafe" class="block text-sm font-medium text-gray-700">Café (Muestra):</label>
-                        <input type="text" id="catador_cafe" class="w-full mt-1 p-2 border border-gray-300 rounded-md" placeholder="ID de la muestra...">
+                        <label class="block text-sm font-medium text-gray-700">Café (Muestra):</label>
+                        <input type="text" id="catador_cafe" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-blue-900" placeholder="Ej: Colombia Lavado">
                     </div>
                 </div>
             </div>
 
-            <!-- PASO 1: Fragrance & Aroma -->
-            <div class="accordion-item bg-white rounded-lg shadow">
+            <!-- PASO 1: Fragancia y Aroma -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
                 <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
-                    <h2 class="text-xl font-semibold text-gray-700">Paso 1: Fragancia y Aroma</h2>
+                    <h2 class="text-xl font-semibold text-gray-700">1. Fragancia y Aroma</h2>
                     <i class="fas fa-chevron-right text-blue-600"></i>
                 </button>
                 <div class="accordion-content p-4 pt-0 space-y-6">
-                    <!-- Parte Descriptiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-white">
-                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
                         <div class="space-y-2">
-                            <label for="fragrance_intensity" class="flex justify-between items-center text-md font-medium">
-                                <span>Fragrance Intensity</span>
-                                <span id="fragrance_intensity_val" class="font-bold text-blue-600">7</span>
-                            </label>
-                            <input type="range" id="fragrance_intensity" name="fragrance_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('fragrance_intensity')">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Fragrance Intensity</span><span id="fragrance_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="fragrance_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-2">
-                            <label for="aroma_intensity" class="flex justify-between items-center text-md font-medium">
-                                <span>Aroma Intensity</span>
-                                <span id="aroma_intensity_val" class="font-bold text-blue-600">7</span>
-                            </label>
-                            <input type="range" id="aroma_intensity" name="aroma_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aroma_intensity')">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Aroma Intensity</span><span id="aroma_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="aroma_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-3">
-                            <h4 class="text-md font-medium">Select up to five that apply:</h4>
+                            <h4 class="text-md font-medium">Select up to five:</h4>
                             <div id="fragrance_aroma_tags" class="flex flex-wrap -m-1"></div>
-                            <div id="fragrance_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                <!-- Botones generados por JS -->
-                            </div>
+                            <div id="fragrance_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
                         </div>
                     </section>
-                    <!-- Parte Afectiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
-                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
+                        <h3 class="text-sm font-bold text-blue-800 uppercase">Puntuación</h3>
                         <div class="space-y-2">
-                            <label for="fragrance_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                                <span>Fragrance (Final)</span>
-                                <span id="fragrance_final_val" class="font-bold text-gray-700">5</span>
-                            </label>
-                            <input type="range" id="fragrance_final" name="fragrance_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('fragrance_final')">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Fragrance Score</span><span id="fragrance_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="fragrance_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-2">
-                            <label for="aroma_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                                <span>Aroma (Final)</span>
-                                <span id="aroma_final_val" class="font-bold text-gray-700">5</span>
-                            </label>
-                            <input type="range" id="aroma_final" name="aroma_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aroma_final')">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Aroma Score</span><span id="aroma_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="aroma_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-2 mt-4">
-                            <label for="fragrance_aroma_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                            <textarea id="fragrance_aroma_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                            <textarea id="fragrance_aroma_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
                         </div>
                     </section>
                 </div>
             </div>
 
-            <!-- PASO 2: Flavor & Aftertaste -->
-            <div class="accordion-item bg-white rounded-lg shadow">
+            <!-- PASO 2: Sabor y Postgusto -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
                 <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
-                    <h2 class="text-xl font-semibold text-gray-700">Paso 2: Sabor y Postgusto</h2>
+                    <h2 class="text-xl font-semibold text-gray-700">2. Sabor y Postgusto</h2>
                     <i class="fas fa-chevron-right text-blue-600"></i>
                 </button>
                 <div class="accordion-content p-4 pt-0 space-y-6">
-                    <!-- Parte Descriptiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-white">
-                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
                         <div class="space-y-2">
-                            <label for="flavor_intensity" class="flex justify-between items-center text-md font-medium">
-                                <span>Flavor Intensity</span>
-                                <span id="flavor_intensity_val" class="font-bold text-blue-600">7</span>
-                            </label>
-                            <input type="range" id="flavor_intensity" name="flavor_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('flavor_intensity')">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Flavor Intensity</span><span id="flavor_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="flavor_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-2">
-                            <label for="aftertaste_intensity" class="flex justify-between items-center text-md font-medium">
-                                <span>Aftertaste Intensity</span>
-                                <span id="aftertaste_intensity_val" class="font-bold text-blue-600">7</span>
-                            </label>
-                            <input type="range" id="aftertaste_intensity" name="aftertaste_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aftertaste_intensity')">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Aftertaste Intensity</span><span id="aftertaste_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="aftertaste_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-3">
-                            <h4 class="text-md font-medium">Select up to five that apply:</h4>
+                            <h4 class="text-md font-medium">Select up to five:</h4>
                             <div id="flavor_aroma_tags" class="flex flex-wrap -m-1"></div>
-                            <div id="flavor_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                <!-- Botones generados por JS -->
-                            </div>
+                            <div id="flavor_aroma_grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
                         </div>
-                        <div class="space-y-3">
-                            <h4 class="text-md font-medium">Main Tastes (select up to 2)</h4>
-                            <div class="flex flex-wrap gap-x-4 gap-y-2">
-                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="salty" class="form-checkbox h-5 w-5"> Salty</label>
-                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="sour" class="form-checkbox h-5 w-5"> Sour</label>
-                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="sweet" class="form-checkbox h-5 w-5"> Sweet</label>
-                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="bitter" class="form-checkbox h-5 w-5"> Bitter</label>
-                                <label class="flex items-center gap-2"><input type="checkbox" name="main_taste" value="umami" class="form-checkbox h-5 w-5"> Umami</label>
+                        <div class="space-y-2">
+                            <h4 class="text-md font-medium">Main Tastes (Max 2):</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Salty"> Salty</label>
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Sour"> Sour</label>
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Sweet"> Sweet</label>
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Bitter"> Bitter</label>
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Umami"> Umami</label>
                             </div>
                         </div>
                     </section>
-                    <!-- Parte Afectiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
-                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
+                        <h3 class="text-sm font-bold text-blue-800 uppercase">Puntuación</h3>
                         <div class="space-y-2">
-                            <label for="flavor_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                                <span>Flavor (Final)</span>
-                                <span id="flavor_final_val" class="font-bold text-gray-700">5</span>
-                            </label>
-                            <input type="range" id="flavor_final" name="flavor_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('flavor_final')">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Flavor Score</span><span id="flavor_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="flavor_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-2">
-                            <label for="aftertaste_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                                <span>Aftertaste (Final)</span>
-                                <span id="aftertaste_final_val" class="font-bold text-gray-700">5</span>
-                            </label>
-                            <input type="range" id="aftertaste_final" name="aftertaste_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('aftertaste_final')">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Aftertaste Score</span><span id="aftertaste_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="aftertaste_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
                         </div>
-                        <div class="space-y-2 mt-4">
-                            <label for="flavor_aftertaste_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                            <textarea id="flavor_aftertaste_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                         <div class="space-y-2 mt-4">
+                            <textarea id="flavor_aftertaste_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
                         </div>
                     </section>
                 </div>
             </div>
 
-            <!-- PASO 3: Acidity -->
-            <div class="accordion-item bg-white rounded-lg shadow">
+            <!-- PASO 3: Acidez -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
                 <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
-                    <h2 class="text-xl font-semibold text-gray-700">Paso 3: Acidez</h2>
+                    <h2 class="text-xl font-semibold text-gray-700">3. Acidez</h2>
                     <i class="fas fa-chevron-right text-blue-600"></i>
                 </button>
                 <div class="accordion-content p-4 pt-0 space-y-6">
-                    <!-- Parte Descriptiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-white">
-                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
                         <div class="space-y-2">
-                            <label for="acidity_intensity" class="flex justify-between items-center text-md font-medium">
-                                <span>Acidity Intensity</span>
-                                <span id="acidity_intensity_val" class="font-bold text-blue-600">7</span>
-                            </label>
-                            <input type="range" id="acidity_intensity" name="acidity_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('acidity_intensity')">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Acidity Intensity</span><span id="acidity_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="acidity_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-2">
-                            <h4 class="text-md font-medium">Select one:</h4>
+                            <h4 class="text-md font-medium">Type:</h4>
                             <div class="flex flex-col space-y-2">
-                                <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><input type="radio" name="acidity_type" value="dry" class="form-radio h-5 w-5"> Dry Acidity (Herby, Grassy, Tart)</label>
-                                <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><input type="radio" name="acidity_type" value="sweet" class="form-radio h-5 w-5"> Sweet Acidity (Juicy, Fruit-like, Bright)</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="radio" name="acidity_type" value="dry" class="h-4 w-4 text-blue-600" onchange="updateRadio('acidity_type')"> Dry Acidity (Herby, Tart)</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="radio" name="acidity_type" value="sweet" class="h-4 w-4 text-blue-600" onchange="updateRadio('acidity_type')"> Sweet Acidity (Juicy, Bright)</label>
                             </div>
                         </div>
                     </section>
-                    <!-- Parte Afectiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
-                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
                         <div class="space-y-2">
-                            <label for="acidity_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                                <span>Acidity (Final)</span>
-                                <span id="acidity_final_val" class="font-bold text-gray-700">5</span>
-                            </label>
-                            <input type="range" id="acidity_final" name="acidity_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('acidity_final')">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Acidity Score</span><span id="acidity_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="acidity_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-2 mt-4">
-                            <label for="acidity_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                            <textarea id="acidity_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                            <textarea id="acidity_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
                         </div>
                     </section>
                 </div>
             </div>
 
-            <!-- PASO 4: Sweetness -->
-            <div class="accordion-item bg-white rounded-lg shadow">
+            <!-- PASO 4: Dulzura -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
                 <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
-                    <h2 class="text-xl font-semibold text-gray-700">Paso 4: Dulzura</h2>
+                    <h2 class="text-xl font-semibold text-gray-700">4. Dulzura</h2>
                     <i class="fas fa-chevron-right text-blue-600"></i>
                 </button>
                 <div class="accordion-content p-4 pt-0 space-y-6">
-                    <!-- Parte Descriptiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-white">
-                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
                         <div class="space-y-2">
-                            <label for="sweetness_intensity" class="flex justify-between items-center text-md font-medium">
-                                <span>Sweetness Intensity</span>
-                                <span id="sweetness_intensity_val" class="font-bold text-blue-600">7</span>
-                            </label>
-                            <input type="range" id="sweetness_intensity" name="sweetness_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('sweetness_intensity')">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Sweetness Intensity</span><span id="sweetness_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="sweetness_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
                         </div>
-                        <div class="space-y-2">
-                            <h4 class="text-md font-medium">Notes (optional):</h4>
-                            <textarea id="sweetness_notes" rows="2" class="w-full p-2 border rounded-md bg-gray-50" placeholder="e.g., Honey-like, Caramel..." oninput="updateNotes(this.id)"></textarea>
+                         <div class="space-y-2">
+                            <textarea id="sweetness_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-16 text-sm" placeholder="Notas descriptivas (Caramelo, Miel...)" oninput="updateNotes(this.id)"></textarea>
                         </div>
                     </section>
-                    <!-- Parte Afectiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
-                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
                         <div class="space-y-2">
-                            <label for="sweetness_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                                <span>Sweetness (Final)</span>
-                                <span id="sweetness_final_val" class="font-bold text-gray-700">5</span>
-                            </label>
-                            <input type="range" id="sweetness_final" name="sweetness_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('sweetness_final')">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Sweetness Score</span><span id="sweetness_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="sweetness_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-2 mt-4">
-                            <label for="sweetness_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                            <textarea id="sweetness_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                            <textarea id="sweetness_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
                         </div>
                     </section>
                 </div>
             </div>
 
-            <!-- PASO 5: Mouthfeel -->
-            <div class="accordion-item bg-white rounded-lg shadow">
+            <!-- PASO 5: Cuerpo -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
                 <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
-                    <h2 class="text-xl font-semibold text-gray-700">Paso 5: Cuerpo (Mouthfeel)</h2>
+                    <h2 class="text-xl font-semibold text-gray-700">5. Cuerpo (Mouthfeel)</h2>
                     <i class="fas fa-chevron-right text-blue-600"></i>
                 </button>
                 <div class="accordion-content p-4 pt-0 space-y-6">
-                    <!-- Parte Descriptiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-white">
-                        <h3 class="text-lg font-bold">Descriptivo</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
                         <div class="space-y-2">
-                            <label for="mouthfeel_intensity" class="flex justify-between items-center text-md font-medium">
-                                <span>Mouthfeel Intensity</span>
-                                <span id="mouthfeel_intensity_val" class="font-bold text-blue-600">7</span>
-                            </label>
-                            <input type="range" id="mouthfeel_intensity" name="mouthfeel_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('mouthfeel_intensity')">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Mouthfeel Intensity</span><span id="mouthfeel_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="mouthfeel_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
                         </div>
-                        <div class="space-y-2">
+                         <div class="space-y-2">
                             <h4 class="text-md font-medium">Select up to two:</h4>
                             <div class="grid grid-cols-2 gap-2">
-                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="rough" class="form-checkbox h-5 w-5"> Rough</label>
-                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="oily" class="form-checkbox h-5 w-5"> Oily</label>
-                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="smooth" class="form-checkbox h-5 w-5"> Smooth</label>
-                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="mouth-drying" class="form-checkbox h-5 w-5"> Mouth-drying</label>
-                                <label class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"><input type="checkbox" name="mouthfeel_type" value="metallic" class="form-checkbox h-5 w-5"> Metallic</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Rough"> Rough</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Oily"> Oily</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Smooth"> Smooth</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Metallic"> Metallic</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Mouth-drying"> Mouth-drying</label>
                             </div>
                         </div>
                     </section>
-                    <!-- Parte Afectiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
-                        <h3 class="text-lg font-bold">Afectivo (Puntuación)</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
                         <div class="space-y-2">
-                            <label for="mouthfeel_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                                <span>Mouthfeel (Final)</span>
-                                <span id="mouthfeel_final_val" class="font-bold text-gray-700">5</span>
-                            </label>
-                            <input type="range" id="mouthfeel_final" name="mouthfeel_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('mouthfeel_final')">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Mouthfeel Score</span><span id="mouthfeel_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="mouthfeel_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
                         </div>
                         <div class="space-y-2 mt-4">
-                            <label for="mouthfeel_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                            <textarea id="mouthfeel_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                            <textarea id="mouthfeel_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
                         </div>
                     </section>
                 </div>
             </div>
 
-            <!-- PASO 6: Overall & Defects -->
-            <div class="accordion-item bg-white rounded-lg shadow">
+            <!-- PASO 6: Overall y Defectos -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
                 <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
-                    <h2 class="text-xl font-semibold text-gray-700">Paso 6: Overall y Defectos</h2>
+                    <h2 class="text-xl font-semibold text-gray-700">6. Overall y Defectos</h2>
                     <i class="fas fa-chevron-right text-blue-600"></i>
                 </button>
                 <div class="accordion-content p-4 pt-0 space-y-6">
-                    <!-- Parte Descriptiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-white">
-                        <h3 class="text-lg font-bold">PART 3: EXTRINSIC ASSESSMENT</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <h3 class="text-lg font-bold">PART 3: EXTRINSIC</h3>
                         <div class="space-y-2">
-                            <h4 class="text-md font-medium">Notes (optional):</h4>
-                            <textarea id="part3_notes" rows="3" class="w-full p-2 border rounded-md bg-gray-50" placeholder="Overall impression, notes..." oninput="updateNotes(this.id)"></textarea>
+                            <textarea id="part3_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-20" placeholder="Impresión general..." oninput="updateNotes(this.id)"></textarea>
                         </div>
                     </section>
-                    <!-- Parte Afectiva -->
-                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
-                        <h3 class="text-lg font-bold">Afectivo (Puntuación y Defectos)</h3>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
+                        <h3 class="text-lg font-bold text-blue-800">Afectivo</h3>
                         <div class="space-y-2">
-                            <label for="overall_final" class="flex justify-between items-center text-md font-medium text-gray-700">
-                                <span>Overall (Final)</span>
-                                <span id="overall_final_val" class="font-bold text-gray-700">5</span>
-                            </label>
-                            <input type="range" id="overall_final" name="overall_final" min="1" max="9" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" oninput="updateSlider('overall_final')">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Overall Score</span><span id="overall_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="overall_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
                         </div>
 
-                        <!-- Bloque de Defectos -->
-                        <div class="space-y-3 pt-4 mt-4 border-t border-gray-200">
+                        <div class="space-y-3 pt-4 mt-4 border-t border-blue-200">
                             <div>
-                                <h4 class="text-md font-medium text-gray-700">NON-UNIFORM CUPS</h4>
+                                <h4 class="text-md font-medium text-gray-700">NON-UNIFORM CUPS (x2 pts)</h4>
                                 <div class="flex items-center space-x-2 mt-1">
-                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
-                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
-                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
-                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
-                                    <input type="checkbox" name="non_uniform_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600"> <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600"> <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600"> <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600"> <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600">
                                 </div>
                             </div>
                             <div>
-                                <h4 class="text-md font-medium text-gray-700">DEFECTIVE CUPS</h4>
+                                <h4 class="text-md font-medium text-gray-700">DEFECTIVE CUPS (x4 pts)</h4>
                                 <div class="flex items-center space-x-2 mt-1">
-                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
-                                    <input type="checkbox" name="defective_cups" class="form-checkbox h-5 w-5">
+                                    <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800">
                                 </div>
                             </div>
                             <div>
-                                <h4 class="text-md font-medium text-gray-700">DEFECT (IF ANY)</h4>
+                                <h4 class="text-md font-medium text-gray-700">DEFECT TYPE</h4>
                                 <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
-                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="moldy" class="form-checkbox h-5 w-5"> MOLDY</label>
-                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="potato" class="form-checkbox h-5 w-5"> POTATO</label>
-                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="phenolic" class="form-checkbox h-5 w-5"> PHENOLIC</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="moldy" class="h-5 w-5 text-red-600"> MOLDY</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="potato" class="h-5 w-5 text-red-600"> POTATO</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="phenolic" class="h-5 w-5 text-red-600"> PHENOLIC</label>
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="space-y-2 mt-4">
-                            <label for="overall_final_notes" class="text-md font-medium text-gray-700">Notes (optional):</label>
-                            <textarea id="overall_final_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-24" placeholder="Notes for final score..." oninput="updateNotes(this.id)"></textarea>
+                            <textarea id="overall_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas finales..." oninput="updateNotes(this.id)"></textarea>
                         </div>
                     </section>
                 </div>
             </div>
             
-            <!-- PASO 7: Exportar (ya no es un paso, es parte del footer) -->
-            <div class="p-4 bg-white rounded-lg shadow space-y-4 text-center">
-                <h3 class="text-lg font-bold">Exportar Hoja de Cata</h3>
-                <p class="text-gray-600">Una vez exportado, el PDF se guardará en tus descargas.</p>
-                <button id="exportButton" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
-                    <i class="fas fa-file-pdf"></i>
-                    <span>Exportar a PDF</span>
+            <!-- Exportar PDF -->
+            <div class="accordion-item bg-white rounded-lg shadow p-4 text-center">
+                <h3 class="text-lg font-bold mb-2">Exportar Hoja de Cata Actual</h3>
+                <button id="exportButton" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                    <i class="fas fa-file-pdf"></i> <span>Exportar PDF (Esta Muestra)</span>
                 </button>
             </div>
 
         </main>
-    </div> <!-- Fin del cuppingSheetContainer (para PDF) -->
+    </div>
 
-    <!-- Puntuación Fija (Footer) -->
-    <footer class="p-4 bg-blue-800 text-white shadow-inner grid grid-cols-3 gap-2 z-10">
+    <!-- Footer Fijo con Puntuación -->
+    <footer class="p-4 bg-blue-900 text-white shadow-inner grid grid-cols-3 gap-2 z-10">
         <div class="text-center">
-            <span class="text-xs font-medium text-blue-200 block">Attribute</span>
-            <span id="attribute_score_display" class="text-xl font-bold">0.00</span>
+            <span class="text-xs font-medium text-blue-200 block uppercase tracking-wider">Atributos</span>
+            <span id="attribute_score_display" class="text-xl font-bold font-mono">0.00</span>
         </div>
-        <div class="text-center">
-            <span class="text-xs font-medium text-blue-200 block">Defects</span>
-            <span id="defect_score_display" class="text-xl font-bold">0.00</span>
+        <div class="text-center border-l border-blue-700">
+            <span class="text-xs font-medium text-blue-200 block uppercase tracking-wider">Defectos</span>
+            <span id="defect_score_display" class="text-xl font-bold text-red-300 font-mono">0.00</span>
         </div>
-        <div class="text-center border-l border-blue-600">
-            <span class="text-xs font-medium text-blue-200 block">Final Score</span>
-            <span id="total_score_display" class="text-2xl font-extrabold">58.00</span>
+        <div class="text-center border-l border-blue-700 bg-blue-800 rounded-lg mx-1 shadow-inner">
+            <span class="text-xs font-medium text-blue-200 block uppercase tracking-wider mt-1">Total</span>
+            <span id="total_score_display" class="text-2xl font-extrabold text-white font-mono">58.00</span>
         </div>
     </footer>
 
-
-    <!-- ============================================= -->
-    <!-- === MODAL (Sigue siendo uno solo) === -->
-    <!-- ============================================= -->
+    <!-- Modal de Aromas -->
     <div id="aromaModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
-            <header id="modalHeader" class="p-4 border-b flex justify-between items-center transition-colors duration-300">
+            <header id="modalHeader" class="p-4 border-b flex justify-between items-center transition-colors duration-300 rounded-t-lg">
                 <h2 id="modalTitle" class="text-xl font-bold">Select Aroma</h2>
-                <button onclick="closeAromaModal()" class="text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
+                <button onclick="closeAromaModal()" class="text-2xl font-bold text-gray-600 hover:text-gray-900">&times;</button>
             </header>
-            
             <div class="p-4 overflow-y-auto flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                <!-- Nivel 2 -->
                 <div class="flex-1">
-                    <h3 class="font-semibold mb-2 text-gray-500">Nivel 2 (Anillo 2)</h3>
+                    <h3 class="font-semibold mb-2 text-gray-500 uppercase text-xs tracking-wide">Nivel 2</h3>
                     <ul id="level2List" class="space-y-2"></ul>
                 </div>
-                <!-- Nivel 3 -->
                 <div class="flex-1">
-                    <h3 class="font-semibold mb-2 text-gray-500">Nivel 3 (Anillo 3)</h3>
-                    <ul id="level3List" class="space-y-2">
-                        <li class="text-gray-400 p-3 rounded-md">Seleccione una opción del Nivel 2</li>
-                    </ul>
+                    <h3 class="font-semibold mb-2 text-gray-500 uppercase text-xs tracking-wide">Nivel 3</h3>
+                    <ul id="level3List" class="space-y-2"><li class="text-gray-400 text-sm italic">Seleccione Nivel 2</li></ul>
                 </div>
             </div>
-            
-            <footer class="p-4 border-t bg-gray-50 rounded-b-lg text-right">
-                <p id="modalSelection" class="text-sm text-gray-600 text-left">Selección: N/A</p>
-            </footer>
         </div>
     </div>
     
-    <!-- Mensaje de Límite -->
-    <div id="limitMessage" class="hidden fixed bottom-20 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg transition-all duration-300 z-50">
-        Ya has seleccionado 5 descriptores para esta sección.
-    </div>
-
+    <div id="limitMessage" class="hidden fixed bottom-24 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg z-50 font-bold">Límite de 5 descriptores.</div>
 
     <script>
-        // =============================================
-        // === LÓGICA DE NAVEGACIÓN (ACORDEÓN) ===
-        // =============================================
-        
-        function initAccordion() {
-            const headers = document.querySelectorAll('.accordion-header');
-            headers.forEach(header => {
-                header.addEventListener('click', () => {
-                    const content = header.nextElementSibling;
-                    const icon = header.querySelector('i');
+        // ==========================================
+        // 1. DATOS Y CONFIGURACIÓN
+        // ==========================================
+        const aromaWheel = {
+            'FLORAL': { btnColor: 'bg-pink-200', btnTextColor: 'text-pink-900', btnHover: 'hover:bg-pink-300', modalHeader: 'bg-pink-200', modalTitleColor: 'text-pink-900', modalBtnColor: 'bg-pink-50', modalBtnHover: 'hover:bg-pink-100', modalBtnText: 'text-pink-800', tagColor: 'bg-pink-200', tagTextColor: 'text-pink-900', sub: { 'Floral': ['Manzanilla', 'Rosa', 'Jazmín', 'Ninguno'], 'Té Negro': ['Té Negro', 'Ninguno'] } },
+            'FRUITY': { btnColor: 'bg-red-200', btnTextColor: 'text-red-900', btnHover: 'hover:bg-red-300', modalHeader: 'bg-red-200', modalTitleColor: 'text-red-900', modalBtnColor: 'bg-red-50', modalBtnHover: 'hover:bg-red-100', modalBtnText: 'text-red-800', tagColor: 'bg-red-200', tagTextColor: 'text-red-900', sub: { 'Bayas': ['Mora', 'Frambuesa', 'Arándano', 'Fresa'], 'Fruta Seca': ['Pasa', 'Ciruela'], 'Cítrico': ['Naranja', 'Limón', 'Lima'], 'Otra Fruta': ['Coco', 'Cereza', 'Piña', 'Uva', 'Manzana', 'Durazno'] } },
+            'SOUR/FERMENTED': { btnColor: 'bg-yellow-200', btnTextColor: 'text-yellow-900', btnHover: 'hover:bg-yellow-300', modalHeader: 'bg-yellow-200', modalTitleColor: 'text-yellow-900', modalBtnColor: 'bg-yellow-50', modalBtnHover: 'hover:bg-yellow-100', modalBtnText: 'text-yellow-800', tagColor: 'bg-yellow-200', tagTextColor: 'text-yellow-900', sub: { 'Agrio': ['Acético', 'Butírico', 'Isovalérico', 'Cítrico', 'Málico'], 'Fermentado': ['Alcohólico', 'Vinoso', 'Whisky', 'Sobre-maduro'] } },
+            'GREEN/VEGETATIVE': { btnColor: 'bg-green-200', btnTextColor: 'text-green-900', btnHover: 'hover:bg-green-300', modalHeader: 'bg-green-200', modalTitleColor: 'text-green-900', modalBtnColor: 'bg-green-50', modalBtnHover: 'hover:bg-green-100', modalBtnText: 'text-green-800', tagColor: 'bg-green-200', tagTextColor: 'text-green-900', sub: { 'Aceite Oliva': ['Aceite'], 'Crudo': ['Crudo'], 'Verde': ['Pasto', 'Hierba', 'Heno'], 'Leguminoso': ['Leguminoso'] } },
+            'OTHER': { btnColor: 'bg-purple-200', btnTextColor: 'text-purple-900', btnHover: 'hover:bg-purple-300', modalHeader: 'bg-purple-200', modalTitleColor: 'text-purple-900', modalBtnColor: 'bg-purple-50', modalBtnHover: 'hover:bg-purple-100', modalBtnText: 'text-purple-800', tagColor: 'bg-purple-200', tagTextColor: 'text-purple-900', sub: { 'Papel/Moho': ['Papel', 'Cartón', 'Moho', 'Tierra', 'Polvo'], 'Químico': ['Medicinal', 'Goma', 'Petróleo', 'Gas'] } },
+            'ROASTED': { btnColor: 'bg-zinc-700', btnTextColor: 'text-zinc-50', btnHover: 'hover:bg-zinc-600', modalHeader: 'bg-zinc-700', modalTitleColor: 'text-zinc-50', modalBtnColor: 'bg-zinc-100', modalBtnHover: 'hover:bg-zinc-200', modalBtnText: 'text-zinc-800', tagColor: 'bg-zinc-700', tagTextColor: 'text-zinc-50', sub: { 'Cereal': ['Cereal'], 'Malta': ['Malta'], 'Tabaco': ['Tabaco'], 'Tostado': ['Quemado', 'Ahumado', 'Ceniza'] } },
+            'NUTTY/COCOA': { btnColor: 'bg-orange-300', btnTextColor: 'text-orange-900', btnHover: 'hover:bg-orange-400', modalHeader: 'bg-orange-300', modalTitleColor: 'text-orange-900', modalBtnColor: 'bg-orange-50', modalBtnHover: 'hover:bg-orange-100', modalBtnText: 'text-orange-800', tagColor: 'bg-orange-300', tagTextColor: 'text-orange-900', sub: { 'Nuez': ['Maní', 'Avellana', 'Almendra'], 'Cacao': ['Chocolate', 'Choco Amargo'] } },
+            'SPICY': { btnColor: 'bg-amber-500', btnTextColor: 'text-amber-50', btnHover: 'hover:bg-amber-600', modalHeader: 'bg-amber-500', modalTitleColor: 'text-amber-50', modalBtnColor: 'bg-amber-50', modalBtnHover: 'hover:bg-amber-100', modalBtnText: 'text-amber-800', tagColor: 'bg-amber-500', tagTextColor: 'text-amber-50', sub: { 'Especias': ['Anís', 'Nuez Moscada', 'Canela', 'Clavo', 'Pimienta'] } },
+            'SWEET': { btnColor: 'bg-blue-200', btnTextColor: 'text-blue-900', btnHover: 'hover:bg-blue-300', modalHeader: 'bg-blue-200', modalTitleColor: 'text-blue-900', modalBtnColor: 'bg-blue-50', modalBtnHover: 'hover:bg-blue-100', modalBtnText: 'text-blue-800', tagColor: 'bg-blue-200', tagTextColor: 'text-blue-900', sub: { 'Vainilla': ['Vainilla'], 'Azúcar': ['Melaza', 'Caramelo', 'Miel'] } }
+        };
 
-                    // Toggle
-                    header.classList.toggle('open');
-                    content.classList.toggle('open');
-                    
-                    // Update icon
-                    if (content.classList.contains('open')) {
-                        icon.classList.remove('fa-chevron-right');
-                        icon.classList.add('fa-chevron-down');
-                    } else {
-                        icon.classList.remove('fa-chevron-down');
-                        icon.classList.add('fa-chevron-right');
-                    }
+        // Plantilla para una nueva sesión vacía
+        const initialSessionState = {
+            metadata: { nombre: "", fecha: "", cafe: "" },
+            descriptive: { 
+                fragrance_intensity: 7, aroma_intensity: 7, fragrance_aromas: [], 
+                flavor_intensity: 7, aftertaste_intensity: 7, flavor_aromas: [], main_tastes: [],
+                acidity_intensity: 7, acidity_type: null, 
+                sweetness_intensity: 7, sweetness_notes: "", 
+                mouthfeel_intensity: 7, mouthfeel_types: [], 
+                part3_notes: "" 
+            },
+            affective: { 
+                fragrance_final: 5, aroma_final: 5, flavor_final: 5, aftertaste_final: 5, 
+                acidity_final: 5, sweetness_final: 5, mouthfeel_final: 5, overall_final: 5, 
+                fragrance_aroma_final_notes: "", flavor_aftertaste_final_notes: "", 
+                acidity_final_notes: "", sweetness_final_notes: "", 
+                mouthfeel_final_notes: "", overall_final_notes: "",
+                non_uniform_cups: 0, defective_cups: 0, defects: []
+            }
+        };
+
+        // --- 2. ESTADO GLOBAL (SESIONES) ---
+        let sessions = [];
+        let activeSessionId = null;
+        let modalState = { currentListKey: null, currentCategory: null };
+
+        // Helper: Obtener la sesión activa
+        function getActiveSession() {
+            return sessions.find(s => s.id === activeSessionId);
+        }
+
+        // --- 3. INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar acordeón
+            document.querySelectorAll('.accordion-header').forEach(h => {
+                h.addEventListener('click', () => {
+                    h.classList.toggle('open');
+                    h.nextElementSibling.classList.toggle('open');
+                    const icon = h.querySelector('i');
+                    icon.classList.toggle('fa-chevron-right');
+                    icon.classList.toggle('fa-chevron-down');
                 });
             });
 
-            // Abrir el primer item (Metadatos) por defecto
-            const firstHeader = document.querySelector('.accordion-header');
-            const firstContent = firstHeader.nextElementSibling;
-            const firstIcon = firstHeader.querySelector('i');
-            
-            firstHeader.classList.add('open');
-            firstContent.classList.add('open');
-            firstIcon.classList.remove('fa-chevron-right');
-            firstIcon.classList.add('fa-chevron-down');
-        }
-
-
-        // =============================================
-        // === LÓGICA DE LA APP (Sin cambios) ===
-        // =============================================
-
-        // --- BASE DE DATOS DE LA RUEDA DE AROMAS (con colores) ---
-        const aromaWheel = {
-            'FLORAL': {
-                btnColor: 'bg-pink-200', btnTextColor: 'text-pink-900', btnHover: 'hover:bg-pink-300',
-                modalHeader: 'bg-pink-200', modalTitleColor: 'text-pink-900',
-                modalBtnColor: 'bg-pink-50', modalBtnHover: 'hover:bg-pink-100', modalBtnText: 'text-pink-800',
-                tagColor: 'bg-pink-200', tagTextColor: 'text-pink-900',
-                sub: { 'Floral': ['Manzanilla (Chamomile)', 'Rosa (Rose)', 'Jazmín (Jasmine)', 'Ninguno de estos'], 'Té Negro (Black Tea)': ['Té Negro', 'Ninguno de estos'] }
-            },
-            'FRUITY': {
-                btnColor: 'bg-red-200', btnTextColor: 'text-red-900', btnHover: 'hover:bg-red-300',
-                modalHeader: 'bg-red-200', modalTitleColor: 'text-red-900',
-                modalBtnColor: 'bg-red-50', modalBtnHover: 'hover:bg-red-100', modalBtnText: 'text-red-800',
-                tagColor: 'bg-red-200', tagTextColor: 'text-red-900',
-                sub: { 'Bayas (Berry)': ['Mora (Blackberry)', 'Frambuesa (Raspberry)', 'Arándano (Blueberry)', 'Fresa (Strawberry)', 'Ninguno de estos'], 'Fruta Seca (Dried Fruit)': ['Pasa (Raisin)', 'Ciruela Pasa (Prune)', 'Ninguno de estos'], 'Cítrico (Citrus Fruit)': ['Toronja (Grapefruit)', 'Naranja (Orange)', 'Limón (Lemon)', 'Lima (Lime)', 'Ninguno de estos'], 'Otra Fruta (Other Fruit)': ['Coco (Coconut)', 'Cereza (Cherry)', 'Granada (Pomegranate)', 'Piña (Pineapple)', 'Uva (Grape)', 'Manzana (Apple)', 'Pera (Pear)', 'Durazno (Peach)', 'Ninguno de estos'] }
-            },
-            'SOUR/FERMENTED': {
-                btnColor: 'bg-yellow-200', btnTextColor: 'text-yellow-900', btnHover: 'hover:bg-yellow-300',
-                modalHeader: 'bg-yellow-200', modalTitleColor: 'text-yellow-900',
-                modalBtnColor: 'bg-yellow-50', modalBtnHover: 'hover:bg-yellow-100', modalBtnText: 'text-yellow-800',
-                tagColor: 'bg-yellow-200', tagTextColor: 'text-yellow-900',
-                sub: { 'Agrio (Sour)': ['Ácido acético (Acetic)', 'Ácido butírico (Butyric)', 'Ácido isovalérico (Isovaleric)', 'Ácido cítrico (Citric)', 'Ácido málico (Malic)', 'Ninguno de estos'], 'Fermentado (Fermented)': ['Alcohólico (Alcohol)', 'Vino (Winey)', 'Whisky', 'Sobre-maduro (Overripe)', 'Ninguno de estos'] }
-            },
-            'GREEN/VEGETATIVE': {
-                btnColor: 'bg-green-200', btnTextColor: 'text-green-900', btnHover: 'hover:bg-green-300',
-                modalHeader: 'bg-green-200', modalTitleColor: 'text-green-900',
-                modalBtnColor: 'bg-green-50', modalBtnHover: 'hover:bg-green-100', modalBtnText: 'text-green-800',
-                tagColor: 'bg-green-200', tagTextColor: 'text-green-900',
-                sub: { 'Aceite de Oliva (Olive Oil)': ['Aceite de Oliva', 'Ninguno de estos'], 'Crudo (Raw)': ['Crudo', 'Ninguno de estos'], 'Verde/Vegetal (Green/Vegetative)': ['Bajo-desarrollo (Under-developed)', 'Pasto (Grassy)', 'Hierba (Herb-like)', 'Heno (Hay-like)', 'Ninguno de estos'], 'Leguminoso (Beany)': ['Leguminoso', 'Ninguno de estos'] }
-            },
-            'OTHER': {
-                btnColor: 'bg-purple-200', btnTextColor: 'text-purple-900', btnHover: 'hover:bg-purple-300',
-                modalHeader: 'bg-purple-200', modalTitleColor: 'text-purple-900',
-                modalBtnColor: 'bg-purple-50', modalBtnHover: 'hover:bg-purple-100', modalBtnText: 'text-purple-800',
-                tagColor: 'bg-purple-200', tagTextColor: 'text-purple-900',
-                sub: { 'Papel/Cartón (Papery/Musty)': ['Papel (Paper)', 'Cartón (Cardboard)', 'Moho (Musty)', 'Tierra (Earthy)', 'Polvo (Dusty)', 'Ninguno de estos'], 'Químico (Chemical)': ['Medicinal (Medicinal)', 'Goma (Rubber)', 'Petróleo (Petroleum)', 'Gas (Skunky)', 'Ninguno de estos'] }
-            },
-            'ROASTED': {
-                btnColor: 'bg-zinc-700', btnTextColor: 'text-zinc-50', btnHover: 'hover:bg-zinc-600',
-                modalHeader: 'bg-zinc-700', modalTitleColor: 'text-zinc-50',
-                modalBtnColor: 'bg-zinc-100', modalBtnHover: 'hover:bg-zinc-200', modalBtnText: 'text-zinc-800',
-                tagColor: 'bg-zinc-700', tagTextColor: 'text-zinc-50',
-                sub: { 
-                    'Cereal (Cereal)': ['Cereal', 'Ninguno de estos'], 
-                    'Malt (Malt)': ['Malt', 'Ninguno de estos'], 
-                    'Tabaco (Tobacco)': ['Tabaco', 'Ninguno de estos'], 
-                    'Tostado (Roasted)': ['Quemado (Burnt)', 'Ahumado (Smoky)', 'Ceniza (Ashy)', 'Ninguno de estos'] 
-                }
-            },
-            'NUTTY/COCOA': {
-                btnColor: 'bg-orange-300', btnTextColor: 'text-orange-900', btnHover: 'hover:bg-orange-400',
-                modalHeader: 'bg-orange-300', modalTitleColor: 'text-orange-900',
-                modalBtnColor: 'bg-orange-50', modalBtnHover: 'hover:bg-orange-100', modalBtnText: 'text-orange-800',
-                tagColor: 'bg-orange-300', tagTextColor: 'text-orange-900',
-                sub: { 'Nuez (Nutty)': ['Maní (Peanut)', 'Avellana (Hazelnut)', 'Almendra (Almond)', 'Ninguno de estos'], 'Cacao (Cocoa)': ['Chocolate', 'Chocolate Amargo (Dark Chocolate)', 'Ninguno de estos'] }
-            },
-            'SPICY': {
-                btnColor: 'bg-amber-500', btnTextColor: 'text-amber-50', btnHover: 'hover:bg-amber-600',
-                modalHeader: 'bg-amber-500', modalTitleColor: 'text-amber-50',
-                modalBtnColor: 'bg-amber-50', modalBtnHover: 'hover:bg-amber-100', modalBtnText: 'text-amber-800',
-                tagColor: 'bg-amber-500', tagTextColor: 'text-amber-50',
-                sub: { 'Especias (Spices)': ['Anís (Anise)', 'Nuez Moscada (Nutmeg)', 'Canela (Cinnamon)', 'Clavo (Clove)', 'Pimienta (Pepper)', 'Ninguno de estos'] }
-            },
-            'SWEET': {
-                btnColor: 'bg-blue-200', btnTextColor: 'text-blue-900', btnHover: 'hover:bg-blue-300',
-                modalHeader: 'bg-blue-200', modalTitleColor: 'text-blue-900',
-                modalBtnColor: 'bg-blue-50', modalBtnHover: 'hover:bg-blue-100', modalBtnText: 'text-blue-800',
-                tagColor: 'bg-blue-200', tagTextColor: 'text-blue-900',
-                sub: { 'Vainilla (Vanilla)': ['Vainilla', 'Ninguno de estos'], 'Azúcar Morena (Brown Sugar)': ['Melaza (Molasses)', 'Caramelo (Caramel)', 'Miel (Honey)', 'Ninguno de estos'] }
-            }
-        };
- 
-        // --- ESTADO DE LA APP ---
-        let cuppingData = {
-            metadata: {
-                nombre: "",
-                fecha: "",
-                cafe: ""
-            },
-            descriptive: {
-                fragrance_intensity: 7,
-                aroma_intensity: 7,
-                fragrance_aromas: [], // Lista 1
-                flavor_intensity: 7,
-                aftertaste_intensity: 7,
-                flavor_aromas: [], // Lista 2
-                main_tastes: [],
-                acidity_intensity: 7,
-                acidity_type: null,
-                sweetness_intensity: 7,
-                sweetness_notes: "",
-                mouthfeel_intensity: 7,
-                mouthfeel_types: [],
-                part3_notes: ""
-            },
-            affective: {
-                fragrance_final: 5, aroma_final: 5, flavor_final: 5, aftertaste_final: 5,
-                acidity_final: 5, sweetness_final: 5, mouthfeel_final: 5, overall_final: 5,
-                fragrance_aroma_final_notes: "",
-                flavor_aftertaste_final_notes: "",
-                acidity_final_notes: "",
-                sweetness_final_notes: "",
-                mouthfeel_final_notes: "",
-                overall_final_notes: "",
-                non_uniform_cups: 0,
-                defective_cups: 0,
-                defects: []
-            }
-        };
-        
-        // --- ESTADO DEL MODAL (temporal) ---
-        let modalState = {
-            currentListKey: null, // 'fragrance_aromas' o 'flavor_aromas'
-            currentCategory: null, 
-            currentL2: null
-        };
-
-        // --- FUNCIONES ---
-
-        function updateSlider(sliderId) {
-            const slider = document.getElementById(sliderId);
-            const output = document.getElementById(sliderId + '_val');
-            output.textContent = slider.value;
-            
-            const isAffective = sliderId.includes('_final');
-            const section = isAffective ? 'affective' : 'descriptive';
-            
-            let key = sliderId;
-            if (isAffective) {
-                key = sliderId;
-            } else {
-                key = sliderId;
-            }
-            
-            cuppingData[section][key] = slider.value;
-            
-            if (isAffective) {
-                calculateTotalScore();
-            }
-        }
-
-        function updateNotes(id) {
-            const textarea = document.getElementById(id);
-            const isAffective = id.includes('_final_');
-            
-            if (isAffective) {
-                cuppingData.affective[id] = textarea.value;
-            } else {
-                if (id === 'sweetness_notes') {
-                    cuppingData.descriptive.sweetness_notes = textarea.value;
-                } else if (id === 'part3_notes') {
-                    cuppingData.descriptive.part3_notes = textarea.value;
-                }
-            }
-        }
-        
-        function showLimitMessage() {
-            const msg = document.getElementById('limitMessage');
-            msg.classList.remove('hidden');
-            setTimeout(() => {
-                msg.classList.add('hidden');
-            }, 2000);
-        }
-
-        function openAromaModal(category, listKey) {
-            if (cuppingData.descriptive[listKey].length >= 5) {
-                showLimitMessage();
-                return;
-            }
-            
-            modalState.currentListKey = listKey;
-            modalState.currentCategory = category;
-            
-            const modal = document.getElementById('aromaModal');
-            const modalHeader = document.getElementById('modalHeader');
-            const title = document.getElementById('modalTitle');
-            const l2List = document.getElementById('level2List');
-            const l3List = document.getElementById('level3List');
-            
-            const categoryData = aromaWheel[category];
-            
-            modalHeader.className = `p-4 border-b flex justify-between items-center transition-colors duration-300 ${categoryData.modalHeader}`;
-            title.className = `text-xl font-bold ${categoryData.modalTitleColor}`;
-            title.textContent = `Seleccionar: ${category}`;
-            
-            l2List.innerHTML = '';
-            l3List.innerHTML = '<li class="text-gray-400 p-3 rounded-md">Seleccione una opción del Nivel 2</li>';
-            updateModalSelection();
-
-            const l2Categories = categoryData.sub;
-            for (const l2Name in l2Categories) {
-                const li = document.createElement('li');
-                li.textContent = l2Name;
-                li.className = `p-3 rounded-md cursor-pointer break-words ${categoryData.modalBtnColor} ${categoryData.modalBtnText} ${categoryData.modalBtnHover}`;
-                li.onclick = () => selectL2(l2Name);
-                l2List.appendChild(li);
-            }
-            
-            modal.classList.remove('hidden');
-        }
-
-        function closeAromaModal() {
-            document.getElementById('aromaModal').classList.add('hidden');
-            modalState = { currentListKey: null, currentCategory: null, currentL2: null };
-        }
-        
-        function selectL2(l2Name) {
-            modalState.currentL2 = l2Name;
-            
-            const categoryData = aromaWheel[modalState.currentCategory];
-            const l3List = document.getElementById('level3List');
-            l3List.innerHTML = ''; 
-            updateModalSelection();
-            
-            const baseClass = `p-3 rounded-md cursor-pointer break-words ${categoryData.modalBtnColor} ${categoryData.modalBtnText} ${categoryData.modalBtnHover}`;
-            const activeClass = `p-3 rounded-md cursor-pointer break-words ${categoryData.modalBtnHover.replace('hover:', '')} ${categoryData.modalBtnText}`;
-
-            Array.from(document.getElementById('level2List').children).forEach(child => {
-                if (child.textContent === l2Name) {
-                    child.className = activeClass;
-                } else {
-                    child.className = baseClass;
-                }
-            });
-
-            const l3Items = aromaWheel[modalState.currentCategory].sub[l2Name];
-            for (const l3Name of l3Items) {
-                const li = document.createElement('li');
-                li.textContent = l3Name;
-                li.className = baseClass;
-                li.onclick = () => selectL3(l3Name);
-                l3List.appendChild(li);
-            }
-        }
-        
-        function selectL3(l3Name) {
-            const { currentCategory, currentL2, currentListKey } = modalState;
-            
-            if (l3Name === 'Ninguno de estos') {
-                 if (aromaWheel[currentCategory].sub[currentL2].length > 1) { 
-                     addAroma(currentListKey, `${currentCategory} > ${currentL2}`, currentCategory);
-                 } else {
-                     addAroma(currentListKey, `${currentCategory} > ${currentL2}`, currentCategory);
-                 }
-            } else {
-                addAroma(currentListKey, `${currentCategory} > ${currentL2} > ${l3Name}`, currentCategory);
-            }
-
-            closeAromaModal();
-        }
-        
-        function addAroma(listKey, aromaString, category) {
-            if (cuppingData.descriptive[listKey].length < 5) {
-                cuppingData.descriptive[listKey].push({ text: aromaString, category: category });
-                renderTags(listKey);
-            }
-        }
-        
-        function removeAroma(listKey, aromaString) {
-            cuppingData.descriptive[listKey] = cuppingData.descriptive[listKey].filter(a => a.text !== aromaString);
-            renderTags(listKey);
-        }
-        
-        function renderTags(listKey) {
-            const tagsContainer = document.getElementById(listKey === 'fragrance_aromas' ? 'fragrance_aroma_tags' : 'flavor_aroma_tags');
-            tagsContainer.innerHTML = ''; 
-            
-            cuppingData.descriptive[listKey].forEach(aromaObj => {
-                const categoryData = aromaWheel[aromaObj.category];
-                const tag = document.createElement('div');
-                tag.className = `aroma-tag ${categoryData.tagColor} ${categoryData.tagTextColor}`;
-                tag.innerHTML = `
-                    <span class="aroma-tag-text">${aromaObj.text}</span>
-                    <button onclick="removeAroma('${listKey}', '${aromaObj.text.replace(/'/g, "\\'")}')" class="focus:outline-none">&times;</button>
-                `;
-                tagsContainer.appendChild(tag);
-            });
-        }
-
-        function updateModalSelection() {
-            const { currentCategory, currentL2 } = modalState;
-            const selEl = document.getElementById('modalSelection');
-            if (!currentCategory) selEl.textContent = 'Selección: N/A';
-            else if (!currentL2) selEl.textContent = `Selección: ${currentCategory}`;
-            else selEl.textContent = `Selección: ${currentCategory} > ${currentL2}`;
-        }
-
-        function renderAromaGrid(containerId, listKey) {
-            const gridContainer = document.getElementById(containerId);
-            gridContainer.innerHTML = ''; 
-            
-            for (const category in aromaWheel) {
-                const categoryData = aromaWheel[category];
-                const button = document.createElement('button');
-                
-                button.textContent = category;
-                button.className = `aroma-btn p-3 rounded-lg font-semibold transition-colors duration-200 h-full ${categoryData.btnColor} ${categoryData.btnTextColor} ${categoryData.btnHover}`;
-                                
-                button.onclick = () => openAromaModal(category, listKey);
-                gridContainer.appendChild(button);
-            }
-        }
-        
-        // --- INICIALIZACIÓN ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Activar el acordeón
-            initAccordion();
-
-            // Dibuja ambas grillas
+            // Inicializar Aromas
             renderAromaGrid('fragrance_aroma_grid', 'fragrance_aromas');
             renderAromaGrid('flavor_aroma_grid', 'flavor_aromas');
 
-            // --- Listeners de Metadatos ---
-            const fechaInput = document.getElementById('catador_fecha');
-            fechaInput.valueAsDate = new Date(); 
-            cuppingData.metadata.fecha = fechaInput.value; 
-            
-            fechaInput.addEventListener('input', (e) => {
-                cuppingData.metadata.fecha = e.target.value;
-            });
-            document.getElementById('catador_nombre').addEventListener('input', (e) => {
-                cuppingData.metadata.nombre = e.target.value;
-            });
-            document.getElementById('catador_cafe').addEventListener('input', (e) => {
-                cuppingData.metadata.cafe = e.target.value;
-            });
-            
-            // Listener del botón de exportar
-            document.getElementById('exportButton').addEventListener('click', exportToPDF);
-            
-            // --- Event Listeners para Defectos ---
-            document.querySelectorAll('input[name="non_uniform_cups"]').forEach(checkbox => {
-                checkbox.addEventListener('change', () => {
-                    cuppingData.affective.non_uniform_cups = 
-                        document.querySelectorAll('input[name="non_uniform_cups"]:checked').length;
-                    calculateTotalScore();
-                });
-            });
-            
-            document.querySelectorAll('input[name="defective_cups"]').forEach(checkbox => {
-                checkbox.addEventListener('change', () => {
-                    cuppingData.affective.defective_cups = 
-                        document.querySelectorAll('input[name="defective_cups"]:checked').length;
-                    calculateTotalScore();
-                });
-            });
-            
-            document.querySelectorAll('input[name="defect_type"]').forEach(checkbox => {
-                checkbox.addEventListener('change', () => {
-                    cuppingData.affective.defects = 
-                        Array.from(document.querySelectorAll('input[name="defect_type"]:checked'))
-                             .map(cb => cb.value);
-                });
-            });
+            // Inicializar Sesiones
+            initSessions();
 
-            // Calcular puntaje inicial (mostrará 58.00 + score de defaults)
-            calculateTotalScore();
+            // Listeners Globales (Inputs)
+            attachInputListeners();
+
+            document.getElementById('exportButton').addEventListener('click', exportToPDF);
+
+            // Registrar Service Worker
+            if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http'))) {
+                navigator.serviceWorker.register('sw.js').catch(e => console.log(e));
+            }
         });
 
-        // --- FUNCIÓN DE CÁLCULO ---
-        const sliderValuePoints = {
-            '1': 0.00, '2': 0.75, '3': 1.25, '4': 2.00, '5': 2.75, 
-            '6': 3.25, '7': 4.00, '8': 4.50, '9': 5.25
-        };
-
-        function calculateTotalScore() {
-            const baseScore = 58.00;
-            let attributeScore = 0;
-            
-            const affectiveSliders = [
-                'fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final',
-                'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'
-            ];
-            
-            affectiveSliders.forEach(sliderId => {
-                const sliderValue = cuppingData.affective[sliderId] || '1';
-                attributeScore += sliderValuePoints[sliderValue.toString()];
-            });
-            
-            const nonUniformPoints = cuppingData.affective.non_uniform_cups * 2;
-            const defectivePoints = cuppingData.affective.defective_cups * 4;
-            const defectSubtraction = nonUniformPoints + defectivePoints;
-            
-            const totalScore = baseScore + attributeScore - defectSubtraction;
-            
-            document.getElementById('attribute_score_display').textContent = attributeScore.toFixed(2);
-            document.getElementById('defect_score_display').textContent = `-${defectSubtraction.toFixed(2)}`;
-            document.getElementById('total_score_display').textContent = totalScore.toFixed(2);
+        // --- 4. GESTIÓN DE SESIONES ---
+        
+        function initSessions() {
+            // Crear primera sesión por defecto
+            addSession(true);
         }
 
-        // --- FUNCIÓN DE EXPORTAR PDF (CORREGIDA) ---
-        // Convertida a async para manejar el bucle de 'await html2canvas'
-        async function exportToPDF() {
-            const { nombre, cafe, fecha } = cuppingData.metadata;
+        function addSession(isFirst = false) {
+            const id = Date.now();
+            const newSession = JSON.parse(JSON.stringify(initialSessionState));
+            newSession.id = id;
+            
+            // Si no es la primera, copiar Nombre y Fecha de la actual
+            if (!isFirst) {
+                const current = getActiveSession();
+                if (current) {
+                    newSession.metadata.nombre = current.metadata.nombre;
+                    newSession.metadata.fecha = current.metadata.fecha;
+                }
+            } else {
+                // Si es la primera, poner fecha de hoy
+                newSession.metadata.fecha = new Date().toISOString().split('T')[0];
+            }
 
-            const cleanNombre = nombre.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'catador';
-            const cleanCafe = cafe.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'cafe';
-            const cleanFecha = fecha.replace(/-/g, '') || 'fecha';
-            
-            const filename = `${cleanNombre}_${cleanCafe}_${cleanFecha}.pdf`;
-            
-            // === INICIO DE LA CORRECCIÓN DE PDF (1 PÁGINA POR PASO) ===
-            
-            // 1. Elementos a capturar (todos los items del acordeón)
-            const items = document.querySelectorAll('.accordion-item');
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4'); // A4: 210mm x 297mm
-            const imgWidth = 210; 
-            const pageHeight = 297; 
-            
-            // 2. Elemento del botón (para saltarlo y manejar el estado)
-            const exportSection = document.querySelector('.accordion-item:last-child');
-            const exportButton = document.getElementById('exportButton');
-            const originalButtonText = exportButton.innerHTML;
-            exportButton.disabled = true;
-            exportButton.innerHTML = 'Exportando...';
+            sessions.push(newSession);
+            switchTab(id);
+        }
 
-            // 3. Bucle asíncrono: 1 página por item
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
+        function switchTab(id) {
+            activeSessionId = id;
+            renderTabs();
+            loadSessionDataToDOM(getActiveSession());
+            calculateTotalScore();
+        }
+
+        function deleteSession(e, id) {
+            e.stopPropagation(); // Detener propagación para no cambiar de tab
+            if (sessions.length <= 1) {
+                alert("Debe haber al menos una hoja de cata.");
+                return;
+            }
+            if (!confirm("¿Borrar esta hoja de cata?")) return;
+
+            const index = sessions.findIndex(s => s.id === id);
+            sessions = sessions.filter(s => s.id !== id);
+
+            // Si borramos la activa, cambiar a la anterior o a la 0
+            if (id === activeSessionId) {
+                const newIndex = Math.max(0, index - 1);
+                switchTab(sessions[newIndex].id);
+            } else {
+                renderTabs(); // Solo redibujar tabs
+            }
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabsContainer');
+            container.innerHTML = '';
+
+            sessions.forEach((session, index) => {
+                const isActive = session.id === activeSessionId;
+                const name = session.metadata.cafe || `Muestra ${index + 1}`;
+
+                const btn = document.createElement('div');
+                btn.className = `flex items-center px-4 py-2 rounded-t-lg cursor-pointer whitespace-nowrap transition-colors border-r border-blue-700/30 relative group ${isActive ? 'bg-gray-50 text-blue-900 font-bold shadow-inner z-10' : 'bg-blue-900/40 text-blue-100 hover:bg-blue-800/60'}`;
+                btn.onclick = () => switchTab(session.id);
                 
-                // No incluir el último panel (el de exportar) en el PDF
-                if (item === exportSection) {
-                    continue;
+                // Texto
+                const span = document.createElement('span');
+                span.textContent = name;
+                span.className = "mr-2";
+                btn.appendChild(span);
+
+                // Botón Cerrar (si hay más de 1) - CORREGIDO TAMAÑO Y Z-INDEX
+                if (sessions.length > 1) {
+                    const closeBtn = document.createElement('button');
+                    closeBtn.type = 'button';
+                    closeBtn.innerHTML = '&times;';
+                    // Aumentado w-6 h-6 y z-20 para asegurar clic
+                    closeBtn.className = `w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500 hover:text-white text-base font-bold opacity-70 hover:opacity-100 ml-2 transition z-20 bg-white/20`;
+                    closeBtn.onclick = (e) => deleteSession(e, session.id);
+                    btn.appendChild(closeBtn);
                 }
 
-                const content = item.querySelector('.accordion-content');
-                const header = item.querySelector('.accordion-header');
-                const icon = header.querySelector('i');
-                const wasOpen = content.classList.contains('open');
+                container.appendChild(btn);
+            });
 
-                // Forzar apertura para la captura
-                content.classList.add('open');
-                header.classList.add('open');
-                content.style.maxHeight = 'none'; // Quitar límite de altura
-                if (icon) {
-                    icon.classList.remove('fa-chevron-right');
-                    icon.classList.add('fa-chevron-down');
-                }
+            // Botón Añadir (+)
+            const addBtn = document.createElement('button');
+            addBtn.className = "ml-1 mb-1 p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow w-8 h-8 flex items-center justify-center transition-transform active:scale-95 shrink-0";
+            addBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            addBtn.onclick = () => addSession();
+            container.appendChild(addBtn);
+        }
 
-                // Esperar que el DOM se pinte (pequeña demora)
-                await new Promise(resolve => setTimeout(resolve, 50));
+        // --- 5. SINCRONIZACIÓN DATOS <-> DOM ---
 
-                // Capturar el canvas del item
-                const canvas = await html2canvas(item, {
-                    scale: 2,
-                    backgroundColor: '#ffffff' // Forzar fondo blanco
+        function loadSessionDataToDOM(session) {
+            const d = session.descriptive;
+            const a = session.affective;
+            const m = session.metadata;
+
+            // Metadata
+            document.getElementById('catador_nombre').value = m.nombre;
+            document.getElementById('catador_fecha').value = m.fecha;
+            document.getElementById('catador_cafe').value = m.cafe;
+
+            // Sliders & Displays
+            ['fragrance_intensity', 'aroma_intensity', 'flavor_intensity', 'aftertaste_intensity', 
+             'acidity_intensity', 'sweetness_intensity', 'mouthfeel_intensity'].forEach(k => {
+                document.getElementById(k).value = d[k];
+                document.getElementById(k + '_val').textContent = d[k];
+            });
+            ['fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final', 
+             'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'].forEach(k => {
+                document.getElementById(k).value = a[k];
+                // El ID del span de valor suele ser k + '_val'
+                const valSpan = document.getElementById(k + '_val');
+                if(valSpan) valSpan.textContent = a[k];
+            });
+
+            // Notes
+            document.getElementById('sweetness_notes').value = d.sweetness_notes;
+            document.getElementById('part3_notes').value = d.part3_notes;
+            ['fragrance_aroma', 'flavor_aftertaste', 'acidity', 'sweetness', 'mouthfeel', 'overall'].forEach(k => {
+                document.getElementById(k + '_final_notes').value = a[k + '_final_notes'];
+            });
+
+            // Checkboxes & Radios
+            // Acidity Radio
+            const radios = document.getElementsByName('acidity_type');
+            radios.forEach(r => r.checked = (r.value === d.acidity_type));
+
+            // Arrays (Main Tastes, Mouthfeel, Defects)
+            // Reset checkboxes first
+            document.querySelectorAll('input[name="main_taste"]').forEach(cb => cb.checked = d.main_tastes.includes(cb.value));
+            document.querySelectorAll('input[name="mouthfeel_type"]').forEach(cb => cb.checked = d.mouthfeel_types.includes(cb.value));
+            document.querySelectorAll('input[name="defect_type"]').forEach(cb => cb.checked = a.defects.includes(cb.value));
+            
+            // Count Checkboxes (Non-Uniform, Defective)
+            const nonUniInputs = document.querySelectorAll('input[name="non_uniform_cups"]');
+            nonUniInputs.forEach((cb, i) => cb.checked = i < a.non_uniform_cups);
+
+            const defCupsInputs = document.querySelectorAll('input[name="defective_cups"]');
+            defCupsInputs.forEach((cb, i) => cb.checked = i < a.defective_cups);
+
+            // Aromas (Re-render tags)
+            renderTags('fragrance_aromas');
+            renderTags('flavor_aromas');
+        }
+
+        function attachInputListeners() {
+            // Metadata
+            ['catador_nombre', 'catador_fecha'].forEach(id => {
+                document.getElementById(id).addEventListener('input', (e) => getActiveSession().metadata[id.split('_')[1]] = e.target.value);
+            });
+            // Cafe (Special: updates tab name)
+            document.getElementById('catador_cafe').addEventListener('input', (e) => {
+                getActiveSession().metadata.cafe = e.target.value;
+                renderTabs(); // Redraw tabs to show new name
+            });
+
+            // Notes
+            const noteIds = ['sweetness_notes', 'part3_notes', 'fragrance_aroma_final_notes', 'flavor_aftertaste_final_notes', 'acidity_final_notes', 'sweetness_final_notes', 'mouthfeel_final_notes', 'overall_final_notes'];
+            noteIds.forEach(id => {
+                document.getElementById(id).addEventListener('input', (e) => updateNotes(id, e.target.value));
+            });
+
+            // Checkboxes (Simple Lists)
+            document.querySelectorAll('input[name="main_taste"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const s = getActiveSession().descriptive;
+                    if(cb.checked) s.main_tastes.push(cb.value);
+                    else s.main_tastes = s.main_tastes.filter(x => x !== cb.value);
                 });
-                
-                const imgData = canvas.toDataURL('image/png');
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
-                // Añadir la imagen al PDF
-                // Controlar si la imagen es más alta que una página
-                let heightLeft = imgHeight;
-                let position = 0;
+            });
+            document.querySelectorAll('input[name="mouthfeel_type"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const s = getActiveSession().descriptive;
+                    if(cb.checked) s.mouthfeel_types.push(cb.value);
+                    else s.mouthfeel_types = s.mouthfeel_types.filter(x => x !== cb.value);
+                });
+            });
+            document.querySelectorAll('input[name="defect_type"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const s = getActiveSession().affective;
+                    if(cb.checked) s.defects.push(cb.value);
+                    else s.defects = s.defects.filter(x => x !== cb.value);
+                });
+            });
 
-                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+            // Radios
+            document.querySelectorAll('input[name="acidity_type"]').forEach(rb => {
+                rb.addEventListener('change', () => {
+                    if(rb.checked) getActiveSession().descriptive.acidity_type = rb.value;
+                });
+            });
 
-                while (heightLeft >= 0) {
-                  position = heightLeft - imgHeight;
-                  doc.addPage();
-                  doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                  heightLeft -= pageHeight;
-                }
-
-                // Añadir una nueva página (si no es el último item)
-                // (El -2 es porque saltamos el último item de 'exportar')
-                if (i < items.length - 2) {
-                    doc.addPage();
-                }
-
-                // Restaurar estado original
-                content.style.maxHeight = ''; // Restaurar CSS
-                if (!wasOpen) {
-                    content.classList.remove('open');
-                    header.classList.remove('open');
-                    if (icon) {
-                        icon.classList.remove('fa-chevron-down');
-                        icon.classList.add('fa-chevron-right');
-                    }
-                }
-            } // Fin del bucle
-
-            // 4. Guardar el documento PDF
-            doc.save(filename);
-
-            // 5. Restaurar el estado original del botón
-            exportButton.disabled = false;
-            exportButton.innerHTML = originalButtonText;
-            
-            // === FIN DE LA CORRECCIÓN DE PDF ===
+            // Count Checkboxes
+            document.querySelectorAll('input[name="non_uniform_cups"]').forEach(cb => cb.addEventListener('change', () => {
+                getActiveSession().affective.non_uniform_cups = document.querySelectorAll('input[name="non_uniform_cups"]:checked').length; calculateTotalScore();
+            }));
+            document.querySelectorAll('input[name="defective_cups"]').forEach(cb => cb.addEventListener('change', () => {
+                getActiveSession().affective.defective_cups = document.querySelectorAll('input[name="defective_cups"]:checked').length; calculateTotalScore();
+            }));
         }
 
-    </script>
 
-    <!-- === AÑADIDO PARA PWA: Registro del Service Worker === -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registrado con éxito:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.log('Fallo en el registro del ServiceWorker:', error);
+        // --- 6. FUNCIONES AUXILIARES ---
+        function updateSlider(id) {
+            const val = document.getElementById(id).value;
+            document.getElementById(id + '_val').textContent = val;
+            
+            const session = getActiveSession();
+            const section = id.includes('_final') ? 'affective' : 'descriptive';
+            session[section][id] = parseInt(val);
+            
+            if (section === 'affective') calculateTotalScore();
+        }
+
+        function updateNotes(id, val) {
+            const session = getActiveSession();
+            if (id.includes('_final_') || id === 'overall_final_notes') {
+                session.affective[id] = val;
+            } else {
+                session.descriptive[id] = val;
+            }
+        }
+
+        const SLIDER_PTS = { '1': 0, '2': 0.75, '3': 1.25, '4': 2, '5': 2.75, '6': 3.25, '7': 4, '8': 4.5, '9': 5.25 };
+        
+        function calculateTotalScore() {
+            const s = getActiveSession().affective;
+            let score = 0;
+            ['fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final', 'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'].forEach(k => {
+                score += SLIDER_PTS[String(s[k] || '1')];
+            });
+            const defects = (s.non_uniform_cups * 2) + (s.defective_cups * 4);
+            const total = 58.00 + score - defects;
+            
+            document.getElementById('attribute_score_display').textContent = score.toFixed(2);
+            document.getElementById('defect_score_display').textContent = `-${defects.toFixed(2)}`;
+            document.getElementById('total_score_display').textContent = total.toFixed(2);
+        }
+
+        // Aromas
+        function renderAromaGrid(cid, listKey) {
+            const c = document.getElementById(cid); c.innerHTML = '';
+            for(let cat in aromaWheel) {
+                const b = document.createElement('button'); b.textContent = cat;
+                b.className = `p-3 rounded-lg font-semibold transition h-full ${aromaWheel[cat].btnColor} ${aromaWheel[cat].btnTextColor} ${aromaWheel[cat].btnHover}`;
+                b.onclick = () => openAromaModal(cat, listKey);
+                c.appendChild(b);
+            }
+        }
+        function openAromaModal(cat, listKey) {
+            const list = getActiveSession().descriptive[listKey];
+            if(list.length >= 5) return document.getElementById('limitMessage').classList.remove('hidden'), setTimeout(()=>document.getElementById('limitMessage').classList.add('hidden'), 2000);
+            
+            modalState = { currentListKey: listKey, currentCategory: cat };
+            const d = aromaWheel[cat];
+            const mh = document.getElementById('modalHeader'); mh.className = `p-4 border-b flex justify-between items-center ${d.modalHeader}`;
+            document.getElementById('modalTitle').className = `text-xl font-bold ${d.modalTitleColor}`;
+            document.getElementById('modalTitle').textContent = `Seleccionar: ${cat}`;
+            const l2 = document.getElementById('level2List'); l2.innerHTML = '';
+            document.getElementById('level3List').innerHTML = '<li class="text-gray-400">Seleccione Nivel 2</li>';
+            
+            for(let sub in d.sub) {
+                const li = document.createElement('li'); li.textContent = sub;
+                li.className = `p-3 rounded-md cursor-pointer ${d.modalBtnColor} ${d.modalBtnText} ${d.modalBtnHover}`;
+                li.onclick = () => {
+                    const l3 = document.getElementById('level3List'); l3.innerHTML = '';
+                    d.sub[sub].forEach(item => {
+                        const li3 = document.createElement('li'); li3.textContent = item;
+                        li3.className = li.className;
+                        li3.onclick = () => {
+                            getActiveSession().descriptive[listKey].push({text: `${cat} > ${sub} > ${item}`, category: cat});
+                            renderTags(listKey); closeAromaModal();
+                        };
+                        l3.appendChild(li3);
                     });
+                };
+                l2.appendChild(li);
+            }
+            document.getElementById('aromaModal').classList.remove('hidden');
+        }
+        function closeAromaModal() { document.getElementById('aromaModal').classList.add('hidden'); }
+        
+        function renderTags(listKey) {
+            const c = document.getElementById(listKey === 'fragrance_aromas' ? 'fragrance_aroma_tags' : 'flavor_aroma_tags'); 
+            c.innerHTML = '';
+            // Usamos la sesión activa
+            const list = getActiveSession().descriptive[listKey];
+            list.forEach(obj => {
+                const d = aromaWheel[obj.category];
+                const t = document.createElement('div'); t.className = `aroma-tag ${d.tagColor} ${d.tagTextColor}`;
+                t.innerHTML = `<span class="aroma-tag-text">${obj.text}</span><button onclick="removeAroma('${listKey}', '${obj.text.replace(/'/g,"\\'")}')">&times;</button>`;
+                c.appendChild(t);
             });
         }
-    </script>
-    <!-- === FIN PWA === -->
+        function removeAroma(listKey, txt) {
+            const session = getActiveSession();
+            session.descriptive[listKey] = session.descriptive[listKey].filter(x => x.text !== txt); 
+            renderTags(listKey);
+        }
 
+        // PDF Export (Usando datos de la sesión ACTIVA)
+        async function exportToPDF() {
+            const btn = document.getElementById('exportButton'); const oldTxt = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = 'Generando...';
+            
+            const current = getActiveSession();
+            const { nombre, cafe, fecha } = current.metadata;
+            const filename = `${(nombre||'catador').replace(/\W/g,'_')}_${(cafe||'muestra').replace(/\W/g,'_')}_${fecha}.pdf`;
+            
+            const { jsPDF } = window.jspdf; const doc = new jsPDF('p', 'mm', 'a4');
+            const items = document.querySelectorAll('.accordion-item');
+            
+            for(let i=0; i<items.length; i++) {
+                if(items[i].contains(btn)) continue; 
+                
+                const content = items[i].querySelector('.accordion-content');
+                const wasOpen = content.classList.contains('open');
+                if(!wasOpen) { content.classList.add('open'); content.style.maxHeight = 'none'; }
+                
+                await new Promise(r => setTimeout(r, 100)); 
+                
+                const canvas = await html2canvas(items[i], { scale: 2, backgroundColor: '#ffffff' });
+                const img = canvas.toDataURL('image/png');
+                const h = (canvas.height * 210) / canvas.width; 
+                
+                if(i > 0) doc.addPage();
+                doc.addImage(img, 'PNG', 0, 10, 210, h);
+                
+                if(!wasOpen) { content.classList.remove('open'); content.style.maxHeight = ''; }
+            }
+            
+            doc.save(filename);
+            btn.disabled = false; btn.innerHTML = oldTxt;
+        }
+    </script>
 </body>
 </html>
