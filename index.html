@@ -1,970 +1,804 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { FileDown, Loader2, Plus, X, ChevronDown, ArrowLeft } from 'lucide-react';
-
-// --- CONSTANTS & DATA ---
-
-const SLIDER_POINTS = {
-  '1': 0.00, '2': 0.75, '3': 1.25, '4': 2.00, '5': 2.75,
-  '6': 3.25, '7': 4.00, '8': 4.50, '9': 5.25
-};
-
-const INITIAL_STATE = {
-  metadata: { nombre: "", fecha: new Date().toISOString().split('T')[0], cafe: "" },
-  descriptive: {
-    fragrance_intensity: 7, aroma_intensity: 7, fragrance_aromas: [],
-    flavor_intensity: 7, aftertaste_intensity: 7, flavor_aromas: [], main_tastes: [],
-    acidity_intensity: 7, acidity_type: null,
-    sweetness_intensity: 7, sweetness_notes: "",
-    mouthfeel_intensity: 7, mouthfeel_types: [],
-    part3_notes: ""
-  },
-  affective: {
-    fragrance_final: 5, aroma_final: 5, flavor_final: 5, aftertaste_final: 5,
-    acidity_final: 5, sweetness_final: 5, mouthfeel_final: 5, overall_final: 5,
-    fragrance_aroma_final_notes: "", flavor_aftertaste_final_notes: "",
-    acidity_final_notes: "", sweetness_final_notes: "",
-    mouthfeel_final_notes: "", overall_final_notes: "",
-    non_uniform_cups: 0, defective_cups: 0, defects: []
-  }
-};
-
-// Colores oficiales y estructura COMPLETA de la SCA
-const AROMA_WHEEL = {
-    'FLORAL': {
-        color: '#db2d83', text: 'white',
-        sub: { 
-            'Floral': ['Manzanilla', 'Rosa', 'Jazmín'], 
-            'Té Negro': ['Té Negro'] 
-        }
-    },
-    'FRUITY': {
-        color: '#da2e34', text: 'white',
-        sub: { 
-            'Bayas (Berry)': ['Mora', 'Frambuesa', 'Arándano', 'Fresa'], 
-            'Fruta Seca': ['Pasa', 'Ciruela Pasa'], 
-            'Cítrico': ['Pomelo', 'Naranja', 'Limón', 'Lima'], 
-            'Otra Fruta': ['Coco', 'Cereza', 'Granada', 'Piña', 'Uva', 'Manzana', 'Melocotón', 'Pera'] 
-        }
-    },
-    'SOUR/FERMENTED': {
-        color: '#e5ba26', text: 'black',
-        sub: { 
-            'Agrio (Sour)': ['Acético', 'Butírico', 'Isovalérico', 'Cítrico', 'Málico'], 
-            'Alcohol/Ferm': ['Vinoso', 'Whisky', 'Fermentado', 'Sobre-maduro'] 
-        }
-    },
-    'GREEN/VEGETATIVE': {
-        color: '#227933', text: 'white',
-        sub: { 
-            'Aceite de Oliva': ['Aceite de Oliva'], 
-            'Crudo': ['Crudo'], 
-            'Verde/Veg': ['Poco tostado', 'Guisante', 'Fresco', 'Verde oscuro', 'Vegetativo', 'Heno', 'Herbáceo'], 
-            'Leguminoso': ['Leguminoso'] 
-        }
-    },
-    'OTHER': {
-        color: '#209ebb', text: 'white',
-        sub: { 
-            'Papel/Moho': ['Viejo', 'Papel', 'Cartón', 'Moho', 'Tierra', 'Polvo', 'Madera'], 
-            'Químico': ['Amargo', 'Salado', 'Medicinal', 'Petróleo', 'Gas', 'Caucho'] 
-        }
-    },
-    'ROASTED': {
-        color: '#b2432d', text: 'white',
-        sub: { 
-            'Cereal': ['Cereal', 'Grano', 'Malta'], 
-            'Tabaco': ['Tabaco', 'Tabaco Pipa'], 
-            'Tostado': ['Quemado', 'Acre', 'Ceniza', 'Ahumado', 'Tostado'] 
-        }
-    },
-    'SPICES': {
-        color: '#a41f36', text: 'white',
-        sub: {
-            'Especias Marrones': ['Clavo', 'Canela', 'Nuez Moscada', 'Anís'],
-            'Pimienta': ['Pimienta'],
-            'Picante': ['Picante']
-        }
-    },
-    'NUTTY/COCOA': {
-        color: '#a16848', text: 'white',
-        sub: { 
-            'Nuez': ['Maní', 'Avellana', 'Almendra'], 
-            'Cacao': ['Chocolate', 'Choco Amargo'] 
-        }
-    },
-    'SWEET': {
-        color: '#e66a28', text: 'white',
-        sub: { 
-            'Azúcar Morena': ['Melaza', 'Sirope de Arce', 'Caramelizado', 'Miel'],
-            'Vainilla': ['Vainilla'],
-            'Aromáticos Dulces': ['Vanillina'],
-            'Dulce General': ['Dulce']
-        }
-    }
-};
-
-// --- COMPONENTS ---
-
-// Componente de Rueda Interactiva SVG
-const InteractiveWheel = ({ onSelect, onCancel }) => {
-    const [path, setPath] = useState([]); // [] = root, ['FRUITY'] = level 2
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCA Coffee Cupping App</title>
     
-    const segments = useMemo(() => {
-        if (path.length === 0) {
-            // Nivel 0: Categorías Principales
-            return Object.keys(AROMA_WHEEL).map(key => ({
-                label: key,
-                color: AROMA_WHEEL[key].color,
-                textColor: AROMA_WHEEL[key].text,
-                value: key,
-                isLeaf: false
-            }));
-        } else if (path.length === 1) {
-            // Nivel 1: Subcategorías (Segundo Anillo)
-            const catKey = path[0];
-            const subCats = AROMA_WHEEL[catKey].sub;
-            
-            return Object.keys(subCats).map(key => {
-                const subItems = subCats[key];
-                // DETECCIÓN INTELIGENTE:
-                // Si el array de hijos tiene 1 solo elemento y se llama igual que el padre (o similar),
-                // lo consideramos un "nodo hoja" en este nivel.
-                const isTerminal = subItems.length === 1 && subItems[0] === key;
+    <!-- PWA Manifest y Tema -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e40af">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/1e40af/FFFFFF?text=SCA">
 
-                return {
-                    label: key,
-                    color: AROMA_WHEEL[catKey].color,
-                    textColor: AROMA_WHEEL[catKey].text,
-                    value: key,
-                    isLeaf: isTerminal // Si es true, al hacer click SELECCIONA en vez de entrar
-                };
-            });
-        } else if (path.length === 2) {
-            // Nivel 2: Items finales (Tercer Anillo real)
-            const catKey = path[0];
-            const subKey = path[1];
-            const items = AROMA_WHEEL[catKey].sub[subKey];
-            return items.map(item => ({
-                label: item,
-                color: AROMA_WHEEL[catKey].color,
-                textColor: AROMA_WHEEL[catKey].text,
-                value: item,
-                isLeaf: true
-            }));
-        }
-        return [];
-    }, [path]);
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Dependencias: Iconos y PDF -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- html2canvas no es estrictamente necesario para el nuevo PDF, pero lo dejamos por compatibilidad -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    const handleSegmentClick = (segment) => {
-        if (segment.isLeaf) {
-            // Es un final (sea anillo 2 o 3), seleccionamos
-            const fullText = [...path, segment.value].join(' > ');
-            onSelect(fullText, path[0]); 
-        } else {
-            // No es final, profundizamos (zoom)
-            setPath([...path, segment.value]);
-        }
-    };
-
-    const handleBack = () => {
-        setPath(path.slice(0, -1));
-    };
-
-    const size = 300;
-    const center = size / 2;
-    const radius = size / 2 - 10;
-    const innerRadius = 40;
-
-    const createArc = (index, total, label, color, textColor, onClick) => {
-        const startAngle = (index * 360) / total;
-        const endAngle = ((index + 1) * 360) / total;
+    <style>
+        body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
         
-        const startRad = (startAngle - 90) * (Math.PI / 180);
-        const endRad = (endAngle - 90) * (Math.PI / 180);
-
-        const x1 = center + radius * Math.cos(startRad);
-        const y1 = center + radius * Math.sin(startRad);
-        const x2 = center + radius * Math.cos(endRad);
-        const y2 = center + radius * Math.sin(endRad);
-
-        const x1_inner = center + innerRadius * Math.cos(startRad);
-        const y1_inner = center + innerRadius * Math.sin(startRad);
-        const x2_inner = center + innerRadius * Math.cos(endRad);
-        const y2_inner = center + innerRadius * Math.sin(endRad);
-
-        const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-
-        const d = [
-            `M ${x1_inner} ${y1_inner}`,
-            `L ${x1} ${y1}`,
-            `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
-            `L ${x2_inner} ${y2_inner}`,
-            `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x1_inner} ${y1_inner}`,
-            `Z`
-        ].join(" ");
-
-        const midAngle = (startAngle + endAngle) / 2 - 90;
-        const midRad = midAngle * (Math.PI / 180);
-        const textRadius = innerRadius + (radius - innerRadius) * 0.6;
-        const textX = center + textRadius * Math.cos(midRad);
-        const textY = center + textRadius * Math.sin(midRad);
-
-        let rotation = midAngle + 90;
-        if (rotation > 90 && rotation < 270) rotation += 180;
-
-        return (
-            <g key={index} onClick={onClick} style={{ cursor: 'pointer' }} className="hover:opacity-90 transition-opacity">
-                <path d={d} fill={color} stroke="white" strokeWidth="2" />
-                <text 
-                    x={textX} 
-                    y={textY} 
-                    fill={textColor} 
-                    fontSize="10" 
-                    fontWeight="bold"
-                    textAnchor="middle" 
-                    alignmentBaseline="middle"
-                    transform={`rotate(${rotation}, ${textX}, ${textY})`}
-                    style={{ pointerEvents: 'none', textShadow: '0px 0px 2px rgba(0,0,0,0.5)' }}
-                >
-                    {label.length > 12 ? label.substring(0, 10) + '..' : label}
-                </text>
-            </g>
-        );
-    };
-
-    return (
-        <div className="flex flex-col items-center justify-center h-full">
-            <div className="relative w-[300px] h-[300px]">
-                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                    {segments.map((seg, i) => 
-                        createArc(i, segments.length, seg.label, seg.color, seg.textColor, () => handleSegmentClick(seg))
-                    )}
-                    <circle cx={center} cy={center} r={innerRadius - 2} fill="white" stroke="#ddd" strokeWidth="1" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    {path.length > 0 ? (
-                        <button 
-                            onClick={handleBack}
-                            className="pointer-events-auto w-16 h-16 rounded-full flex items-center justify-center bg-white shadow-md hover:bg-gray-100 text-gray-600 transition-colors"
-                        >
-                            <ArrowLeft size={24} />
-                        </button>
-                    ) : (
-                        <div className="text-xs font-bold text-gray-400 text-center w-16">SCA<br/>WHEEL</div>
-                    )}
-                </div>
-            </div>
-            
-            <div className="mt-6 text-center">
-                <p className="text-sm text-gray-500 mb-2">
-                    {path.length === 0 ? "Selecciona una Categoría" : path.join(" > ")}
-                </p>
-                <button onClick={onCancel} className="text-red-500 text-sm underline">Cancelar</button>
-            </div>
-        </div>
-    );
-};
-
-// --- HELPER FUNCTIONS ---
-
-const getFreshState = () => JSON.parse(JSON.stringify(INITIAL_STATE));
-
-// Load scripts dynamically
-const loadScript = (src) => {
-    return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) {
-            resolve();
-            return;
+        /* Tags de Aromas */
+        .aroma-tag {
+            display: inline-flex; align-items: center; padding: 4px 10px; margin: 4px;
+            border-radius: 16px; font-size: 0.875rem; font-weight: 500; max-width: 100%; 
         }
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-};
+        .aroma-tag-text { flex-grow: 1; word-wrap: break-word; white-space: normal; }
+        .aroma-tag button { margin-left: 8px; font-weight: bold; opacity: 0.7; flex-shrink: 0; }
 
-const generatePDF = async (data, containerRef, setIsExporting) => {
-    if (!containerRef.current) return;
-    setIsExporting(true);
-
-    try {
-        // Load Libraries
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-
-        const { nombre, cafe, fecha } = data.metadata;
-        const filename = `${nombre || 'catador'}_${cafe || 'cafe'}_${fecha || 'fecha'}.pdf`.replace(/[^a-z0-9_.-]/gi, '_');
-        
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210; 
-
-        const sections = containerRef.current.querySelectorAll('.accordion-item-container');
-        let pageAdded = false;
-
-        for (let i = 0; i < sections.length; i++) {
-            const section = sections[i];
-            const content = section.querySelector('.accordion-content');
-            
-            const originalMaxHeight = content.style.maxHeight;
-            const originalOpacity = content.style.opacity;
-
-            content.style.maxHeight = 'none';
-            content.style.opacity = '1';
-            content.style.display = 'block'; 
-            
-            await new Promise(r => setTimeout(r, 100));
-
-            const canvas = await window.html2canvas(section, { scale: 2, backgroundColor: '#ffffff' });
-            const imgData = canvas.toDataURL('image/png');
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-            if (pageAdded) doc.addPage();
-            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-            pageAdded = true;
-
-            content.style.maxHeight = originalMaxHeight;
-            content.style.opacity = originalOpacity;
-            content.style.display = '';
+        /* Acordeón */
+        .accordion-content {
+            transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+            max-height: 0; opacity: 0; overflow: hidden;
         }
-        
-        doc.save(filename);
+        .accordion-content.open {
+            max-height: 5000px; opacity: 1; overflow: visible;
+        }
+        .accordion-header i { transition: transform 0.3s ease; }
+        .accordion-header.open i { transform: rotate(90deg); }
 
-    } catch (error) {
-        console.error("Export failed", error);
-        alert("Error generating PDF");
-    } finally {
-        setIsExporting(false);
-    }
-};
+        /* Estilos para Tabs */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col h-screen">
 
-// --- COMPONENTS ---
-
-const SliderControl = ({ label, value, onChange, min = 0, max = 15, className = "" }) => (
-    <div className={`space-y-1 ${className}`}>
-        <div className="flex justify-between items-center text-sm font-medium text-gray-700">
-            <span>{label}</span>
-            <span className="text-blue-600 font-bold">{value}</span>
+    <!-- Cabecera Fija -->
+    <header class="bg-blue-800 text-white shadow-md z-10 flex flex-col">
+        <div class="p-3 text-center">
+            <h1 class="text-lg font-bold">SCA Coffee Value Assessment</h1>
         </div>
-        <input 
-            type="range" min={min} max={max} value={value} 
-            onChange={(e) => onChange(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-        />
-    </div>
-);
 
-const TextAreaControl = ({ label, value, onChange, placeholder, height = "h-24" }) => (
-    <div className="space-y-1">
-        {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
-        <textarea 
-            value={value} onChange={(e) => onChange(e.target.value)}
-            className={`w-full p-2 border border-gray-300 rounded-md bg-white ${height} text-sm`}
-            placeholder={placeholder}
-        />
-    </div>
-);
-
-const AccordionItem = ({ title, children, defaultOpen = false }) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
-    return (
-        <div className="accordion-item-container bg-white rounded-lg shadow overflow-hidden border border-gray-100">
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
-                className="accordion-header w-full flex justify-between items-center p-4 text-left hover:bg-gray-50 transition-colors"
-            >
-                <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
-                <div style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                    <ChevronDown size={20} className="text-gray-400" />
-                </div>
-            </button>
-            <div className={`accordion-content transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-4 pt-0 border-t border-gray-100">
-                    {children}
-                </div>
-            </div>
+        <!-- BARRA DE PESTAÑAS -->
+        <div class="flex items-end px-2 space-x-1 overflow-x-auto no-scrollbar select-none" id="tabsContainer">
+            <!-- Las pestañas se generarán aquí con JS -->
         </div>
-    );
-};
+    </header>
 
-const AromaTag = ({ text, category, onRemove }) => {
-    const colors = AROMA_WHEEL[category] || { color: '#ccc', text: 'black' };
-    return (
-        <span 
-            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium m-1"
-            style={{ backgroundColor: colors.color, color: colors.text }}
-        >
-            {text}
-            <button onClick={onRemove} className="ml-2 opacity-60 hover:opacity-100">
-                <X size={12} />
-            </button>
-        </span>
-    );
-};
+    <!-- Contenedor Principal (Scrollable) -->
+    <div id="cuppingSheetContainer" class="flex-1 overflow-y-auto bg-gray-50">
+        <main class="p-4 space-y-3 pb-24"> <!-- Padding bottom extra para el footer -->
 
-// --- SECTIONS ---
-
-const MetadataSection = ({ data, onChange }) => {
-    const handleChange = (field, value) => {
-        onChange(prev => ({ ...prev, metadata: { ...prev.metadata, [field]: value } }));
-    };
-    return (
-        <div className="space-y-3 mt-2">
-            <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase">Name</label>
-                <input 
-                    type="text" value={data.metadata.nombre} 
-                    onChange={e => handleChange('nombre', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded mt-1"
-                />
-            </div>
-            <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase">Date</label>
-                <input 
-                    type="date" value={data.metadata.fecha} 
-                    onChange={e => handleChange('fecha', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded mt-1"
-                />
-            </div>
-            <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase">Sample / Coffee</label>
-                <input 
-                    type="text" value={data.metadata.cafe} 
-                    onChange={e => handleChange('cafe', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded mt-1"
-                    placeholder="Sample ID"
-                />
-            </div>
-        </div>
-    );
-};
-
-const FragranceSection = ({ data, onChange, openAromaModal }) => {
-    const updateDesc = (k, v) => onChange(prev => ({ ...prev, descriptive: { ...prev.descriptive, [k]: v } }));
-    const updateAff = (k, v) => onChange(prev => ({ ...prev, affective: { ...prev.affective, [k]: v } }));
-    
-    return (
-        <div className="space-y-6 mt-2">
-            <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Descriptive</h3>
-                <SliderControl label="Fragrance Intensity" value={data.descriptive.fragrance_intensity} onChange={v => updateDesc('fragrance_intensity', v)} />
-                <SliderControl label="Aroma Intensity" value={data.descriptive.aroma_intensity} onChange={v => updateDesc('aroma_intensity', v)} className="mt-4" />
-                
-                <div className="mt-4">
-                    <p className="text-xs font-medium text-gray-500 mb-2">AROMAS (Select up to 5)</p>
-                    <div className="flex flex-wrap -m-1 mb-2 min-h-[2rem]">
-                        {data.descriptive.fragrance_aromas.map((a, i) => (
-                            <AromaTag key={i} text={a.text} category={a.category} 
-                                onRemove={() => updateDesc('fragrance_aromas', data.descriptive.fragrance_aromas.filter((_, idx) => idx !== i))} 
-                            />
-                        ))}
-                    </div>
-                    <button 
-                        onClick={() => openAromaModal('fragrance_aromas')}
-                        className="w-full py-2 mt-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 flex items-center justify-center gap-2"
-                    >
-                        <Plus size={16} /> Abrir Rueda de Aromas
-                    </button>
-                </div>
-            </div>
-            
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="text-sm font-bold text-blue-800 uppercase mb-3">Affective Score</h3>
-                <SliderControl label="Fragrance Score" value={data.affective.fragrance_final} onChange={v => updateAff('fragrance_final', v)} min={1} max={9} />
-                <SliderControl label="Aroma Score" value={data.affective.aroma_final} onChange={v => updateAff('aroma_final', v)} min={1} max={9} className="mt-4" />
-                <div className="mt-4">
-                    <TextAreaControl placeholder="Notes..." value={data.affective.fragrance_aroma_final_notes} onChange={v => updateAff('fragrance_aroma_final_notes', v)} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const FlavorSection = ({ data, onChange, openAromaModal }) => {
-    const updateDesc = (k, v) => onChange(prev => ({ ...prev, descriptive: { ...prev.descriptive, [k]: v } }));
-    const updateAff = (k, v) => onChange(prev => ({ ...prev, affective: { ...prev.affective, [k]: v } }));
-    const tastes = ['Salty', 'Sour', 'Sweet', 'Bitter', 'Umami'];
-    
-    return (
-        <div className="space-y-6 mt-2">
-            <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Descriptive</h3>
-                <SliderControl label="Flavor Intensity" value={data.descriptive.flavor_intensity} onChange={v => updateDesc('flavor_intensity', v)} />
-                <SliderControl label="Aftertaste Intensity" value={data.descriptive.aftertaste_intensity} onChange={v => updateDesc('aftertaste_intensity', v)} className="mt-4" />
-                
-                <div className="mt-4">
-                    <p className="text-xs font-medium text-gray-500 mb-2">FLAVORS (Select up to 5)</p>
-                    <div className="flex flex-wrap -m-1 mb-2 min-h-[2rem]">
-                        {data.descriptive.flavor_aromas.map((a, i) => (
-                            <AromaTag key={i} text={a.text} category={a.category} 
-                                onRemove={() => updateDesc('flavor_aromas', data.descriptive.flavor_aromas.filter((_, idx) => idx !== i))} 
-                            />
-                        ))}
-                    </div>
-                    <button 
-                        onClick={() => openAromaModal('flavor_aromas')}
-                        className="w-full py-2 mt-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-700 flex items-center justify-center gap-2"
-                    >
-                        <Plus size={16} /> Abrir Rueda de Sabores
-                    </button>
-                </div>
-
-                 <div className="mt-4">
-                    <p className="text-xs font-medium text-gray-500 mb-2">MAIN TASTES</p>
-                    <div className="flex flex-wrap gap-2">
-                        {tastes.map(t => (
-                            <label key={t} className="flex items-center space-x-1 text-sm bg-white px-2 py-1 rounded border border-gray-200">
-                                <input type="checkbox" checked={data.descriptive.main_tastes.includes(t)}
-                                    onChange={e => {
-                                        const curr = data.descriptive.main_tastes;
-                                        const next = e.target.checked ? [...curr, t] : curr.filter(x => x !== t);
-                                        updateDesc('main_tastes', next);
-                                    }}
-                                    className="rounded text-blue-600"
-                                />
-                                <span>{t}</span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
-            </div>
-            
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="text-sm font-bold text-blue-800 uppercase mb-3">Affective Score</h3>
-                <SliderControl label="Flavor Score" value={data.affective.flavor_final} onChange={v => updateAff('flavor_final', v)} min={1} max={9} />
-                <SliderControl label="Aftertaste Score" value={data.affective.aftertaste_final} onChange={v => updateAff('aftertaste_final', v)} min={1} max={9} className="mt-4" />
-                <div className="mt-4">
-                    <TextAreaControl placeholder="Notes..." value={data.affective.flavor_aftertaste_final_notes} onChange={v => updateAff('flavor_aftertaste_final_notes', v)} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const AciditySection = ({ data, onChange }) => {
-    const updateDesc = (k, v) => onChange(prev => ({ ...prev, descriptive: { ...prev.descriptive, [k]: v } }));
-    const updateAff = (k, v) => onChange(prev => ({ ...prev, affective: { ...prev.affective, [k]: v } }));
-    
-    return (
-        <div className="space-y-6 mt-2">
-            <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Descriptive</h3>
-                <SliderControl label="Acidity Intensity" value={data.descriptive.acidity_intensity} onChange={v => updateDesc('acidity_intensity', v)} />
-                <div className="mt-4 flex space-x-4">
-                    {['Dry', 'Sweet'].map(type => (
-                        <label key={type} className="flex items-center space-x-2 text-sm cursor-pointer">
-                            <input type="radio" name="acidityType" value={type} checked={data.descriptive.acidity_type === type}
-                                onChange={() => updateDesc('acidity_type', type)} className="text-blue-600" />
-                            <span>{type}</span>
-                        </label>
-                    ))}
-                </div>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="text-sm font-bold text-blue-800 uppercase mb-3">Affective Score</h3>
-                <SliderControl label="Acidity Score" value={data.affective.acidity_final} onChange={v => updateAff('acidity_final', v)} min={1} max={9} />
-                 <div className="mt-4">
-                    <TextAreaControl placeholder="Notes..." value={data.affective.acidity_final_notes} onChange={v => updateAff('acidity_final_notes', v)} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const SweetnessSection = ({ data, onChange }) => {
-    const updateDesc = (k, v) => onChange(prev => ({ ...prev, descriptive: { ...prev.descriptive, [k]: v } }));
-    const updateAff = (k, v) => onChange(prev => ({ ...prev, affective: { ...prev.affective, [k]: v } }));
-    return (
-        <div className="space-y-6 mt-2">
-            <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Descriptive</h3>
-                <SliderControl label="Sweetness Intensity" value={data.descriptive.sweetness_intensity} onChange={v => updateDesc('sweetness_intensity', v)} />
-                <div className="mt-4">
-                     <TextAreaControl label="Descriptor Notes" placeholder="Honey-like, Caramel..." value={data.descriptive.sweetness_notes} onChange={v => updateDesc('sweetness_notes', v)} height="h-16" />
-                </div>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="text-sm font-bold text-blue-800 uppercase mb-3">Affective Score</h3>
-                <SliderControl label="Sweetness Score" value={data.affective.sweetness_final} onChange={v => updateAff('sweetness_final', v)} min={1} max={9} />
-                 <div className="mt-4">
-                    <TextAreaControl placeholder="Notes..." value={data.affective.sweetness_final_notes} onChange={v => updateAff('sweetness_final_notes', v)} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const MouthfeelSection = ({ data, onChange }) => {
-    const updateDesc = (k, v) => onChange(prev => ({ ...prev, descriptive: { ...prev.descriptive, [k]: v } }));
-    const updateAff = (k, v) => onChange(prev => ({ ...prev, affective: { ...prev.affective, [k]: v } }));
-    const types = ['Rough', 'Oily', 'Smooth', 'Drying', 'Metallic'];
-    
-    return (
-        <div className="space-y-6 mt-2">
-             <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Descriptive</h3>
-                <SliderControl label="Mouthfeel Intensity" value={data.descriptive.mouthfeel_intensity} onChange={v => updateDesc('mouthfeel_intensity', v)} />
-                 <div className="mt-4 grid grid-cols-2 gap-2">
-                    {types.map(t => (
-                        <label key={t} className="flex items-center space-x-1 text-sm">
-                            <input type="checkbox" checked={data.descriptive.mouthfeel_types.includes(t)}
-                                onChange={e => {
-                                    const curr = data.descriptive.mouthfeel_types;
-                                    const next = e.target.checked ? [...curr, t] : curr.filter(x => x !== t);
-                                    updateDesc('mouthfeel_types', next);
-                                }}
-                                className="rounded text-blue-600"
-                            />
-                            <span>{t}</span>
-                        </label>
-                    ))}
-                </div>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="text-sm font-bold text-blue-800 uppercase mb-3">Affective Score</h3>
-                <SliderControl label="Mouthfeel Score" value={data.affective.mouthfeel_final} onChange={v => updateAff('mouthfeel_final', v)} min={1} max={9} />
-                 <div className="mt-4">
-                    <TextAreaControl placeholder="Notes..." value={data.affective.mouthfeel_final_notes} onChange={v => updateAff('mouthfeel_final_notes', v)} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const OverallSection = ({ data, onChange }) => {
-    const updateDesc = (k, v) => onChange(prev => ({ ...prev, descriptive: { ...prev.descriptive, [k]: v } }));
-    const updateAff = (k, v) => onChange(prev => ({ ...prev, affective: { ...prev.affective, [k]: v } }));
-    const defectsList = ['Moldy', 'Potato', 'Phenolic'];
-
-    return (
-        <div className="space-y-6 mt-2">
-             <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Extrinsic / Overall</h3>
-                 <TextAreaControl label="Overall Impression" placeholder="General notes..." value={data.descriptive.part3_notes} onChange={v => updateDesc('part3_notes', v)} />
-            </div>
-            
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="text-sm font-bold text-blue-800 uppercase mb-3">Affective Score</h3>
-                <SliderControl label="Overall Score" value={data.affective.overall_final} onChange={v => updateAff('overall_final', v)} min={1} max={9} />
-                 <div className="mt-4">
-                    <TextAreaControl placeholder="Notes..." value={data.affective.overall_final_notes} onChange={v => updateAff('overall_final_notes', v)} />
-                </div>
-
-                {/* Defects Block */}
-                <div className="mt-6 border-t border-blue-200 pt-4">
-                    <h4 className="text-xs font-bold text-red-700 uppercase mb-2">Defects</h4>
-                    
-                    <div className="mb-3">
-                        <label className="text-xs font-medium text-gray-600 block mb-1">Non-Uniform Cups (x2 pts)</label>
-                        <div className="flex space-x-1">
-                            {[1,2,3,4,5].map(n => (
-                                <button key={n} onClick={() => updateAff('non_uniform_cups', data.affective.non_uniform_cups === n ? n-1 : n)}
-                                    className={`w-6 h-6 rounded border ${n <= data.affective.non_uniform_cups ? 'bg-red-500 border-red-600' : 'bg-white border-gray-300'}`}
-                                />
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="mb-3">
-                        <label className="text-xs font-medium text-gray-600 block mb-1">Defective Cups (x4 pts)</label>
-                         <div className="flex space-x-1">
-                            {[1,2,3,4,5].map(n => (
-                                <button key={n} onClick={() => updateAff('defective_cups', data.affective.defective_cups === n ? n-1 : n)}
-                                    className={`w-6 h-6 rounded border ${n <= data.affective.defective_cups ? 'bg-red-800 border-red-900' : 'bg-white border-gray-300'}`}
-                                />
-                            ))}
-                        </div>
-                    </div>
-
+            <!-- PASO 0: Información -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
+                <button class="accordion-header open w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">Información de la Cata</h2>
+                    <i class="fas fa-chevron-down text-blue-600"></i>
+                </button>
+                <div class="accordion-content open p-4 pt-0 space-y-4">
                     <div>
-                        <label className="text-xs font-medium text-gray-600 block mb-1">Defect Type</label>
-                        <div className="flex space-x-3">
-                            {defectsList.map(d => (
-                                <label key={d} className="flex items-center space-x-1 text-xs">
-                                    <input type="checkbox" checked={data.affective.defects.includes(d)}
-                                        onChange={e => {
-                                            const curr = data.affective.defects;
-                                            const next = e.target.checked ? [...curr, d] : curr.filter(x => x !== d);
-                                            updateAff('defects', next);
-                                        }}
-                                        className="text-red-600"
-                                    />
-                                    <span>{d}</span>
-                                </label>
-                            ))}
-                        </div>
+                        <label class="block text-sm font-medium text-gray-700">Nombre (Catador):</label>
+                        <input type="text" id="catador_nombre" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Tu nombre...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Fecha:</label>
+                        <input type="date" id="catador_fecha" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Café (Muestra):</label>
+                        <input type="text" id="catador_cafe" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-blue-900" placeholder="Ej: Colombia Lavado">
                     </div>
                 </div>
             </div>
-        </div>
-    );
-};
 
-const AromaModal = ({ isOpen, onClose, onSelect, initialCategory }) => {
-    if (!isOpen) return null;
-    
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden">
-                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-                    <h3 className="font-bold text-lg text-gray-800">Selector de Aromas</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 transition-colors">
-                        <X size={24} className="text-gray-600" />
-                    </button>
-                </div>
-                
-                <div className="flex-1 overflow-hidden relative bg-gray-50">
-                    <InteractiveWheel 
-                        onSelect={onSelect} 
-                        onCancel={onClose} 
-                    />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-// --- MAIN APP COMPONENT ---
-
-export default function App() {
-  // Initialize with one session
-  const [sessions, setSessions] = useState([
-      { id: 'init-1', data: getFreshState() }
-  ]);
-  const [activeSessionId, setActiveSessionId] = useState('init-1');
-
-  const [isExporting, setIsExporting] = useState(false);
-  
-  // Modal State
-  const [modalState, setModalState] = useState({ isOpen: false, listKey: null });
-
-  const containerRef = useRef(null);
-
-  // Helper to get active session object
-  const activeSession = useMemo(() => 
-    sessions.find(s => s.id === activeSessionId) || sessions[0], 
-  [sessions, activeSessionId]);
-
-  const activeData = activeSession.data;
-
-  // Calculated Scores for ACTIVE session
-  const scores = useMemo(() => {
-    let attributeScore = 0;
-    const affective = activeData.affective;
-    const keys = [
-        'fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final',
-        'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'
-    ];
-
-    keys.forEach(k => {
-        const val = affective[k];
-        if (typeof val === 'number') {
-            attributeScore += SLIDER_POINTS[String(val)] || 0;
-        }
-    });
-
-    const defectPoints = (affective.non_uniform_cups * 2) + (affective.defective_cups * 4);
-    const totalScore = 58.00 + attributeScore - defectPoints;
-
-    return {
-        attribute: attributeScore.toFixed(2),
-        defects: defectPoints.toFixed(2),
-        total: totalScore.toFixed(2)
-    };
-  }, [activeData.affective]);
-
-  // --- Session Management Handlers ---
-
-  const handleAddSession = () => {
-      const newId = `session-${Date.now()}`;
-      const newState = getFreshState();
-      
-      // Smart Copy: Copy metadata (Name, Date) from the currently active session
-      if (activeData) {
-          newState.metadata.nombre = activeData.metadata.nombre;
-          newState.metadata.fecha = activeData.metadata.fecha;
-      }
-
-      setSessions(prev => [...prev, { id: newId, data: newState }]);
-      setActiveSessionId(newId);
-      
-      if (containerRef.current) containerRef.current.scrollTop = 0;
-  };
-
-  const handleRemoveSession = (e, idToRemove) => {
-      e.stopPropagation(); 
-      
-      if (sessions.length <= 1) return; 
-
-      const indexToRemove = sessions.findIndex(s => s.id === idToRemove);
-      const newSessions = sessions.filter(s => s.id !== idToRemove);
-      
-      setSessions(newSessions);
-
-      if (idToRemove === activeSessionId) {
-          const newIndex = Math.max(0, indexToRemove - 1);
-          setActiveSessionId(newSessions[newIndex].id);
-      }
-  };
-
-  const handleUpdateActiveSession = (updater) => {
-      setSessions(prevSessions => {
-          return prevSessions.map(session => {
-              if (session.id === activeSessionId) {
-                  // Check if updater is function or value
-                  const newData = typeof updater === 'function' ? updater(session.data) : updater;
-                  return { ...session, data: newData };
-              }
-              return session;
-          });
-      });
-  };
-
-  // --- Feature Handlers ---
-
-  const handleOpenAromaModal = (listKey) => {
-      if (activeData.descriptive[listKey].length >= 5) {
-          alert("Has seleccionado el límite de 5 descriptores.");
-          return;
-      }
-      setModalState({ isOpen: true, listKey });
-  };
-
-  const handleAromaSelect = (text, category) => {
-      const key = modalState.listKey;
-      if (key) {
-          handleUpdateActiveSession(prev => ({
-              ...prev,
-              descriptive: {
-                  ...prev.descriptive,
-                  [key]: [...prev.descriptive[key], { text, category }]
-              }
-          }));
-      }
-      setModalState(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleExport = () => {
-      generatePDF(activeData, containerRef, setIsExporting);
-  };
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-100 font-sans text-gray-800">
-        <header className="bg-blue-800 text-white shadow-md z-10 shrink-0 relative">
-            <div className="p-4 pb-2">
-                <h1 className="text-xl font-bold text-center">SCA Coffee Value Assessment</h1>
-            </div>
-            
-            {/* Tabs Container */}
-            <div className="flex items-end px-2 space-x-1 overflow-x-auto no-scrollbar">
-                {sessions.map((session, index) => {
-                    const isActive = session.id === activeSessionId;
-                    const label = session.data.metadata.cafe.trim() || `Muestra ${index + 1}`;
-                    
-                    return (
-                        <div 
-                            key={session.id}
-                            onClick={() => setActiveSessionId(session.id)}
-                            className={`
-                                group relative flex items-center min-w-[120px] max-w-[200px] py-2 px-3 rounded-t-lg cursor-pointer transition-all duration-200 select-none
-                                ${isActive 
-                                    ? 'bg-gray-100 text-blue-900 font-bold shadow-[0_-2px_5px_rgba(0,0,0,0.1)] z-10' 
-                                    : 'bg-blue-900/40 text-blue-100 hover:bg-blue-900/60'
-                                }
-                            `}
-                            style={{ marginBottom: isActive ? '-1px' : '0' }}
-                        >
-                            <span className="truncate mr-6 text-sm">{label}</span>
-                            
-                            {sessions.length > 1 && (
-                                <button 
-                                    onClick={(e) => handleRemoveSession(e, session.id)}
-                                    className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-red-500 hover:text-white transition-colors ${isActive ? 'text-gray-400' : 'text-blue-300'}`}
-                                >
-                                    <X size={12} />
-                                </button>
-                            )}
+            <!-- PASO 1: Fragancia y Aroma -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">1. Fragancia y Aroma</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Fragrance Intensity</span><span id="fragrance_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="fragrance_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
                         </div>
-                    );
-                })}
-                
-                <button 
-                    onClick={handleAddSession}
-                    className="mb-1 p-1.5 rounded-full bg-blue-700 text-blue-100 hover:bg-blue-600 hover:text-white transition-colors ml-1 shrink-0"
-                    title="Add new sample"
-                >
-                    <Plus size={18} />
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Aroma Intensity</span><span id="aroma_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="aroma_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-3">
+                            <h4 class="text-md font-medium">Select up to five:</h4>
+                            <div id="fragrance_aroma_tags" class="flex flex-wrap -m-1"></div>
+                            <!-- Botón para abrir la rueda -->
+                            <button onclick="openAromaModal('fragrance_aromas')" class="w-full py-3 bg-blue-600 text-white rounded-lg font-bold shadow hover:bg-blue-700 flex items-center justify-center gap-2 transition-transform active:scale-95">
+                                <i class="fas fa-dharmachakra"></i> Abrir Rueda de Aromas
+                            </button>
+                        </div>
+                    </section>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
+                        <h3 class="text-sm font-bold text-blue-800 uppercase">Puntuación</h3>
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Fragrance Score</span><span id="fragrance_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="fragrance_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Aroma Score</span><span id="aroma_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="aroma_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <textarea id="fragrance_aroma_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- PASO 2: Sabor y Postgusto -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">2. Sabor y Postgusto</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Flavor Intensity</span><span id="flavor_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="flavor_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Aftertaste Intensity</span><span id="aftertaste_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="aftertaste_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-3">
+                            <h4 class="text-md font-medium">Select up to five:</h4>
+                            <div id="flavor_aroma_tags" class="flex flex-wrap -m-1"></div>
+                            <!-- Botón para abrir la rueda -->
+                            <button onclick="openAromaModal('flavor_aromas')" class="w-full py-3 bg-blue-600 text-white rounded-lg font-bold shadow hover:bg-blue-700 flex items-center justify-center gap-2 transition-transform active:scale-95">
+                                <i class="fas fa-dharmachakra"></i> Abrir Rueda de Sabores
+                            </button>
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-md font-medium">Main Tastes (Max 2):</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Salty"> Salty</label>
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Sour"> Sour</label>
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Sweet"> Sweet</label>
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Bitter"> Bitter</label>
+                                <label class="flex items-center gap-1 bg-white px-2 py-1 rounded border"><input type="checkbox" name="main_taste" value="Umami"> Umami</label>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
+                        <h3 class="text-sm font-bold text-blue-800 uppercase">Puntuación</h3>
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Flavor Score</span><span id="flavor_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="flavor_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Aftertaste Score</span><span id="aftertaste_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="aftertaste_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
+                        </div>
+                         <div class="space-y-2 mt-4">
+                            <textarea id="flavor_aftertaste_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- PASO 3: Acidez -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">3. Acidez</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Acidity Intensity</span><span id="acidity_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="acidity_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-md font-medium">Type:</h4>
+                            <div class="flex flex-col space-y-2">
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="radio" name="acidity_type" value="dry" class="h-4 w-4 text-blue-600" onchange="updateRadio('acidity_type')"> Dry Acidity (Herby, Tart)</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="radio" name="acidity_type" value="sweet" class="h-4 w-4 text-blue-600" onchange="updateRadio('acidity_type')"> Sweet Acidity (Juicy, Bright)</label>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Acidity Score</span><span id="acidity_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="acidity_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <textarea id="acidity_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- PASO 4: Dulzura -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">4. Dulzura</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Sweetness Intensity</span><span id="sweetness_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="sweetness_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
+                        </div>
+                         <div class="space-y-2">
+                            <textarea id="sweetness_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-16 text-sm" placeholder="Notas descriptivas (Caramelo, Miel...)" oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Sweetness Score</span><span id="sweetness_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="sweetness_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <textarea id="sweetness_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- PASO 5: Cuerpo -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">5. Cuerpo (Mouthfeel)</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium"><span>Mouthfeel Intensity</span><span id="mouthfeel_intensity_val" class="font-bold text-blue-600">7</span></label>
+                            <input type="range" id="mouthfeel_intensity" min="0" max="15" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateSlider(this.id)">
+                        </div>
+                         <div class="space-y-2">
+                            <h4 class="text-md font-medium">Select up to two:</h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Rough"> Rough</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Oily"> Oily</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Smooth"> Smooth</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Metallic"> Metallic</label>
+                                <label class="flex items-center gap-2 bg-white p-2 rounded border"><input type="checkbox" name="mouthfeel_type" value="Mouth-drying"> Mouth-drying</label>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Mouthfeel Score</span><span id="mouthfeel_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="mouthfeel_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <textarea id="mouthfeel_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- PASO 6: Overall y Defectos -->
+            <div class="accordion-item bg-white rounded-lg shadow border border-gray-200">
+                <button class="accordion-header w-full flex justify-between items-center p-4 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700">6. Overall y Defectos</h2>
+                    <i class="fas fa-chevron-right text-blue-600"></i>
+                </button>
+                <div class="accordion-content p-4 pt-0 space-y-6">
+                    <section class="border rounded-lg p-4 space-y-4 bg-gray-50">
+                        <h3 class="text-lg font-bold">PART 3: EXTRINSIC</h3>
+                        <div class="space-y-2">
+                            <textarea id="part3_notes" class="w-full p-2 border border-gray-300 rounded-md bg-white h-20" placeholder="Impresión general..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                    <section class="border rounded-lg p-4 space-y-4 bg-blue-50 border-blue-100">
+                        <h3 class="text-lg font-bold text-blue-800">Afectivo</h3>
+                        <div class="space-y-2">
+                            <label class="flex justify-between items-center text-md font-medium text-gray-700"><span>Overall Score</span><span id="overall_final_val" class="font-bold text-gray-700">5</span></label>
+                            <input type="range" id="overall_final" min="1" max="9" value="5" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="updateSlider(this.id)">
+                        </div>
+
+                        <div class="space-y-3 pt-4 mt-4 border-t border-blue-200">
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700">NON-UNIFORM CUPS (x2 pts)</h4>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600"> <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600"> <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600"> <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600"> <input type="checkbox" name="non_uniform_cups" class="h-5 w-5 text-red-600">
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700">DEFECTIVE CUPS (x4 pts)</h4>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800"> <input type="checkbox" name="defective_cups" class="h-5 w-5 text-red-800">
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700">DEFECT TYPE</h4>
+                                <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="moldy" class="h-5 w-5 text-red-600"> MOLDY</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="potato" class="h-5 w-5 text-red-600"> POTATO</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" name="defect_type" value="phenolic" class="h-5 w-5 text-red-600"> PHENOLIC</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2 mt-4">
+                            <textarea id="overall_final_notes" class="w-full p-2 border border-blue-200 rounded-md bg-white h-20 text-sm" placeholder="Notas finales..." oninput="updateNotes(this.id)"></textarea>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            
+            <!-- Exportar PDF -->
+            <div class="accordion-item bg-white rounded-lg shadow p-4 text-center">
+                <h3 class="text-lg font-bold mb-2">Exportar Hoja de Cata Actual</h3>
+                <button id="exportButton" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                    <i class="fas fa-file-pdf"></i> <span>Generar Reporte PDF</span>
                 </button>
             </div>
-        </header>
 
-        <main ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-3 pb-32 md:pb-24 bg-gray-100">
-            <AccordionItem title="Información de la Cata" defaultOpen>
-                <MetadataSection data={activeData} onChange={handleUpdateActiveSession} />
-            </AccordionItem>
-            
-            <AccordionItem title="1. Fragancia y Aroma">
-                <FragranceSection data={activeData} onChange={handleUpdateActiveSession} openAromaModal={handleOpenAromaModal} />
-            </AccordionItem>
-            
-            <AccordionItem title="2. Sabor y Postgusto">
-                <FlavorSection data={activeData} onChange={handleUpdateActiveSession} openAromaModal={handleOpenAromaModal} />
-            </AccordionItem>
-            
-            <AccordionItem title="3. Acidez">
-                <AciditySection data={activeData} onChange={handleUpdateActiveSession} />
-            </AccordionItem>
-            
-            <AccordionItem title="4. Dulzura">
-                <SweetnessSection data={activeData} onChange={handleUpdateActiveSession} />
-            </AccordionItem>
-            
-            <AccordionItem title="5. Cuerpo (Mouthfeel)">
-                <MouthfeelSection data={activeData} onChange={handleUpdateActiveSession} />
-            </AccordionItem>
-            
-            <AccordionItem title="6. General y Defectos">
-                <OverallSection data={activeData} onChange={handleUpdateActiveSession} />
-            </AccordionItem>
-
-            {/* Export Button Area */}
-            <div className="p-6 bg-white rounded-lg shadow text-center mt-6 border border-gray-200">
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Exportar Muestra Actual</h3>
-                <p className="text-gray-500 mb-4 text-sm">Generar reporte PDF para <strong>{activeData.metadata.cafe || "esta muestra"}</strong>.</p>
-                <button 
-                    onClick={handleExport} 
-                    disabled={isExporting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                >
-                    {isExporting ? <Loader2 className="animate-spin" /> : <FileDown />}
-                    <span>{isExporting ? 'Generando PDF...' : 'Exportar a PDF'}</span>
-                </button>
-            </div>
         </main>
-
-        {/* Score Footer */}
-        <footer className="p-4 bg-blue-900 text-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] grid grid-cols-3 gap-2 z-20 shrink-0">
-            <div className="text-center">
-                <span className="text-xs font-medium text-blue-200 block uppercase tracking-wider">Atributos</span>
-                <span className="text-xl font-bold font-mono">{scores.attribute}</span>
-            </div>
-            <div className="text-center border-l border-blue-700">
-                <span className="text-xs font-medium text-blue-200 block uppercase tracking-wider">Defectos</span>
-                <span className="text-xl font-bold text-red-300 font-mono">-{scores.defects}</span>
-            </div>
-            <div className="text-center border-l border-blue-700 bg-blue-800 rounded-lg mx-1">
-                <span className="text-xs font-medium text-blue-200 block uppercase tracking-wider mt-1">Total</span>
-                <span className="text-2xl font-extrabold text-white font-mono">{scores.total}</span>
-            </div>
-        </footer>
-
-        <AromaModal 
-            isOpen={modalState.isOpen} 
-            onClose={() => setModalState({ ...modalState, isOpen: false })}
-            onSelect={handleAromaSelect}
-        />
     </div>
-  );
-}
+
+    <!-- Footer Fijo con Puntuación -->
+    <footer class="p-4 bg-blue-900 text-white shadow-inner grid grid-cols-3 gap-2 z-10">
+        <div class="text-center">
+            <span class="text-xs font-medium text-blue-200 block uppercase tracking-wider">Atributos</span>
+            <span id="attribute_score_display" class="text-xl font-bold font-mono">0.00</span>
+        </div>
+        <div class="text-center border-l border-blue-700">
+            <span class="text-xs font-medium text-blue-200 block uppercase tracking-wider">Defectos</span>
+            <span id="defect_score_display" class="text-xl font-bold text-red-300 font-mono">0.00</span>
+        </div>
+        <div class="text-center border-l border-blue-700 bg-blue-800 rounded-lg mx-1 shadow-inner">
+            <span class="text-xs font-medium text-blue-200 block uppercase tracking-wider mt-1">Total</span>
+            <span id="total_score_display" class="text-2xl font-extrabold text-white font-mono">58.00</span>
+        </div>
+    </footer>
+
+    <!-- Modal de Aromas (Interactiva SVG) -->
+    <div id="aromaModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden">
+            <header id="modalHeader" class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h2 id="modalTitle" class="text-xl font-bold text-gray-800">Rueda de Aromas</h2>
+                <button onclick="closeAromaModal()" class="text-2xl font-bold text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-200 transition-colors">&times;</button>
+            </header>
+            <div id="wheelContainer" class="flex-1 overflow-hidden relative bg-white flex items-center justify-center p-4">
+                <!-- El SVG se renderiza aquí -->
+            </div>
+        </div>
+    </div>
+    
+    <div id="limitMessage" class="hidden fixed bottom-24 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg z-50 font-bold">Límite de 5 descriptores.</div>
+
+    <script>
+        // ==========================================
+        // 1. DATOS DE LA RUEDA DE AROMAS
+        // ==========================================
+        const AROMA_WHEEL = {
+            'FLORAL': {
+                color: '#db2d83', text: 'white',
+                sub: { 'Floral': ['Manzanilla', 'Rosa', 'Jazmín'], 'Té Negro': ['Té Negro'] }
+            },
+            'FRUITY': {
+                color: '#da2e34', text: 'white',
+                sub: { 'Bayas': ['Mora', 'Frambuesa', 'Arándano', 'Fresa'], 'Fruta Seca': ['Pasa', 'Ciruela Pasa'], 'Cítrico': ['Pomelo', 'Naranja', 'Limón', 'Lima'], 'Otra Fruta': ['Coco', 'Cereza', 'Granada', 'Piña', 'Uva', 'Manzana', 'Melocotón', 'Pera'] }
+            },
+            'SOUR/FERMENTED': {
+                color: '#e5ba26', text: 'black',
+                sub: { 'Agrio': ['Acético', 'Butírico', 'Isovalérico', 'Cítrico', 'Málico'], 'Alcohol/Ferm': ['Vinoso', 'Whisky', 'Fermentado', 'Sobre-maduro'] }
+            },
+            'GREEN/VEGETATIVE': {
+                color: '#227933', text: 'white',
+                sub: { 'Aceite de Oliva': ['Aceite de Oliva'], 'Crudo': ['Crudo'], 'Verde/Veg': ['Poco tostado', 'Guisante', 'Fresco', 'Verde oscuro', 'Vegetativo', 'Heno', 'Herbáceo'], 'Leguminoso': ['Leguminoso'] }
+            },
+            'OTHER': {
+                color: '#209ebb', text: 'white',
+                sub: { 'Papel/Moho': ['Viejo', 'Papel', 'Cartón', 'Moho', 'Tierra', 'Polvo', 'Madera'], 'Químico': ['Amargo', 'Salado', 'Medicinal', 'Petróleo', 'Gas', 'Caucho'] }
+            },
+            'ROASTED': {
+                color: '#b2432d', text: 'white',
+                sub: { 'Cereal': ['Cereal', 'Grano', 'Malta'], 'Tabaco': ['Tabaco', 'Tabaco Pipa'], 'Tostado': ['Quemado', 'Acre', 'Ceniza', 'Ahumado', 'Tostado'] }
+            },
+            'SPICES': {
+                color: '#a41f36', text: 'white',
+                sub: { 'Especias Marrones': ['Clavo', 'Canela', 'Nuez Moscada', 'Anís'], 'Pimienta': ['Pimienta'], 'Picante': ['Picante'] }
+            },
+            'NUTTY/COCOA': {
+                color: '#a16848', text: 'white',
+                sub: { 'Nuez': ['Maní', 'Avellana', 'Almendra'], 'Cacao': ['Chocolate', 'Choco Amargo'] }
+            },
+            'SWEET': {
+                color: '#e66a28', text: 'white',
+                sub: { 'Azúcar Morena': ['Melaza', 'Sirope de Arce', 'Caramelizado', 'Miel'], 'Vainilla': ['Vainilla'], 'Aromáticos Dulces': ['Vanillina'], 'Dulce General': ['Dulce'] }
+            }
+        };
+
+        // Plantilla para una nueva sesión vacía
+        const initialSessionState = {
+            metadata: { nombre: "", fecha: "", cafe: "" },
+            descriptive: { 
+                fragrance_intensity: 7, aroma_intensity: 7, fragrance_aromas: [], 
+                flavor_intensity: 7, aftertaste_intensity: 7, flavor_aromas: [], main_tastes: [],
+                acidity_intensity: 7, acidity_type: null, 
+                sweetness_intensity: 7, sweetness_notes: "", 
+                mouthfeel_intensity: 7, mouthfeel_types: [], 
+                part3_notes: "" 
+            },
+            affective: { 
+                fragrance_final: 5, aroma_final: 5, flavor_final: 5, aftertaste_final: 5, 
+                acidity_final: 5, sweetness_final: 5, mouthfeel_final: 5, overall_final: 5, 
+                fragrance_aroma_final_notes: "", flavor_aftertaste_final_notes: "", 
+                acidity_final_notes: "", sweetness_final_notes: "", 
+                mouthfeel_final_notes: "", overall_final_notes: "",
+                non_uniform_cups: 0, defective_cups: 0, defects: []
+            }
+        };
+
+        // --- 2. ESTADO GLOBAL ---
+        let sessions = [];
+        let activeSessionId = null;
+        let modalState = { currentListKey: null, path: [] }; // path para navegación rueda
+
+        // --- 3. INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Acordeón
+            document.querySelectorAll('.accordion-header').forEach(h => {
+                h.addEventListener('click', () => {
+                    h.classList.toggle('open');
+                    h.nextElementSibling.classList.toggle('open');
+                    const icon = h.querySelector('i');
+                    icon.classList.toggle('fa-chevron-right');
+                    icon.classList.toggle('fa-chevron-down');
+                });
+            });
+
+            initSessions();
+            attachInputListeners();
+
+            document.getElementById('exportButton').addEventListener('click', exportToPDF);
+
+            // Registrar Service Worker
+            if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http'))) {
+                navigator.serviceWorker.register('sw.js').catch(e => console.log(e));
+            }
+        });
+
+        // --- 4. GESTIÓN DE SESIONES ---
+        function getActiveSession() { return sessions.find(s => s.id === activeSessionId); }
+
+        function initSessions() { addSession(true); }
+
+        function addSession(isFirst = false) {
+            const id = Date.now();
+            const newSession = JSON.parse(JSON.stringify(initialSessionState));
+            newSession.id = id;
+            if (!isFirst) {
+                const current = getActiveSession();
+                if (current) {
+                    newSession.metadata.nombre = current.metadata.nombre;
+                    newSession.metadata.fecha = current.metadata.fecha;
+                }
+            } else {
+                newSession.metadata.fecha = new Date().toISOString().split('T')[0];
+            }
+            sessions.push(newSession);
+            switchTab(id);
+        }
+
+        function switchTab(id) {
+            activeSessionId = id;
+            renderTabs();
+            loadSessionDataToDOM(getActiveSession());
+            calculateTotalScore();
+        }
+
+        function deleteSession(e, id) {
+            e.stopPropagation(); 
+            if (sessions.length <= 1) { alert("Debe haber al menos una hoja."); return; }
+            if (!confirm("¿Borrar esta hoja?")) return;
+            const index = sessions.findIndex(s => s.id === id);
+            sessions = sessions.filter(s => s.id !== id);
+            if (id === activeSessionId) {
+                const newIndex = Math.max(0, index - 1);
+                switchTab(sessions[newIndex].id);
+            } else {
+                renderTabs(); 
+            }
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabsContainer');
+            container.innerHTML = '';
+            sessions.forEach((session, index) => {
+                const isActive = session.id === activeSessionId;
+                const name = session.metadata.cafe || `Muestra ${index + 1}`;
+                const btn = document.createElement('div');
+                btn.className = `flex items-center px-4 py-2 rounded-t-lg cursor-pointer whitespace-nowrap transition-colors border-r border-blue-700/30 relative group ${isActive ? 'bg-gray-50 text-blue-900 font-bold shadow-inner z-10' : 'bg-blue-900/40 text-blue-100 hover:bg-blue-800/60'}`;
+                btn.onclick = () => switchTab(session.id);
+                btn.innerHTML = `<span class="mr-2">${name}</span>`;
+                if (sessions.length > 1) {
+                    const closeBtn = document.createElement('button');
+                    closeBtn.innerHTML = '&times;';
+                    closeBtn.className = `w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500 hover:text-white text-base font-bold opacity-70 hover:opacity-100 ml-2 transition z-20 bg-white/20`;
+                    closeBtn.onclick = (e) => deleteSession(e, session.id);
+                    btn.appendChild(closeBtn);
+                }
+                container.appendChild(btn);
+            });
+            const addBtn = document.createElement('button');
+            addBtn.className = "ml-1 mb-1 p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow w-8 h-8 flex items-center justify-center transition-transform active:scale-95 shrink-0";
+            addBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            addBtn.onclick = () => addSession();
+            container.appendChild(addBtn);
+        }
+
+        // --- 5. SINCRONIZACIÓN & LISTENERS ---
+        function loadSessionDataToDOM(session) {
+            const d = session.descriptive, a = session.affective, m = session.metadata;
+            document.getElementById('catador_nombre').value = m.nombre;
+            document.getElementById('catador_fecha').value = m.fecha;
+            document.getElementById('catador_cafe').value = m.cafe;
+            
+            ['fragrance_intensity', 'aroma_intensity', 'flavor_intensity', 'aftertaste_intensity', 'acidity_intensity', 'sweetness_intensity', 'mouthfeel_intensity'].forEach(k => { document.getElementById(k).value = d[k]; document.getElementById(k + '_val').textContent = d[k]; });
+            ['fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final', 'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'].forEach(k => { document.getElementById(k).value = a[k]; if(document.getElementById(k+'_val')) document.getElementById(k+'_val').textContent = a[k]; });
+
+            document.getElementById('sweetness_notes').value = d.sweetness_notes;
+            document.getElementById('part3_notes').value = d.part3_notes;
+            ['fragrance_aroma', 'flavor_aftertaste', 'acidity', 'sweetness', 'mouthfeel', 'overall'].forEach(k => { document.getElementById(k + '_final_notes').value = a[k + '_final_notes']; });
+
+            document.getElementsByName('acidity_type').forEach(r => r.checked = (r.value === d.acidity_type));
+            document.querySelectorAll('input[name="main_taste"]').forEach(cb => cb.checked = d.main_tastes.includes(cb.value));
+            document.querySelectorAll('input[name="mouthfeel_type"]').forEach(cb => cb.checked = d.mouthfeel_types.includes(cb.value));
+            document.querySelectorAll('input[name="defect_type"]').forEach(cb => cb.checked = a.defects.includes(cb.value));
+            document.querySelectorAll('input[name="non_uniform_cups"]').forEach((cb, i) => cb.checked = i < a.non_uniform_cups);
+            document.querySelectorAll('input[name="defective_cups"]').forEach((cb, i) => cb.checked = i < a.defective_cups);
+
+            renderTags('fragrance_aromas'); renderTags('flavor_aromas');
+        }
+
+        function attachInputListeners() {
+            ['catador_nombre', 'catador_fecha'].forEach(id => document.getElementById(id).addEventListener('input', (e) => getActiveSession().metadata[id.split('_')[1]] = e.target.value));
+            document.getElementById('catador_cafe').addEventListener('input', (e) => { getActiveSession().metadata.cafe = e.target.value; renderTabs(); });
+            const noteIds = ['sweetness_notes', 'part3_notes', 'fragrance_aroma_final_notes', 'flavor_aftertaste_final_notes', 'acidity_final_notes', 'sweetness_final_notes', 'mouthfeel_final_notes', 'overall_final_notes'];
+            noteIds.forEach(id => document.getElementById(id).addEventListener('input', (e) => updateNotes(id, e.target.value)));
+            
+            const arrayListeners = [
+                {name: 'main_taste', store: 'descriptive', key: 'main_tastes'},
+                {name: 'mouthfeel_type', store: 'descriptive', key: 'mouthfeel_types'},
+                {name: 'defect_type', store: 'affective', key: 'defects'}
+            ];
+            arrayListeners.forEach(conf => {
+                document.querySelectorAll(`input[name="${conf.name}"]`).forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        const s = getActiveSession()[conf.store];
+                        if(cb.checked) s[conf.key].push(cb.value);
+                        else s[conf.key] = s[conf.key].filter(x => x !== cb.value);
+                    });
+                });
+            });
+            document.querySelectorAll('input[name="acidity_type"]').forEach(rb => rb.addEventListener('change', () => { if(rb.checked) getActiveSession().descriptive.acidity_type = rb.value; }));
+            
+            document.querySelectorAll('input[name="non_uniform_cups"]').forEach(cb => cb.addEventListener('change', () => { getActiveSession().affective.non_uniform_cups = document.querySelectorAll('input[name="non_uniform_cups"]:checked').length; calculateTotalScore(); }));
+            document.querySelectorAll('input[name="defective_cups"]').forEach(cb => cb.addEventListener('change', () => { getActiveSession().affective.defective_cups = document.querySelectorAll('input[name="defective_cups"]:checked').length; calculateTotalScore(); }));
+        }
+
+        function updateSlider(id) {
+            const val = document.getElementById(id).value;
+            document.getElementById(id + '_val').textContent = val;
+            const session = getActiveSession();
+            const section = id.includes('_final') ? 'affective' : 'descriptive';
+            session[section][id] = parseInt(val);
+            if (section === 'affective') calculateTotalScore();
+        }
+
+        function updateNotes(id, val) {
+            const session = getActiveSession();
+            if (id.includes('_final_') || id === 'overall_final_notes') session.affective[id] = val; else session.descriptive[id] = val;
+        }
+
+        const SLIDER_PTS = { '1': 0, '2': 0.75, '3': 1.25, '4': 2, '5': 2.75, '6': 3.25, '7': 4, '8': 4.5, '9': 5.25 };
+        function calculateTotalScore() {
+            const s = getActiveSession().affective;
+            let score = 0;
+            ['fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final', 'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'].forEach(k => { score += SLIDER_PTS[String(s[k] || '1')]; });
+            const defects = (s.non_uniform_cups * 2) + (s.defective_cups * 4);
+            const total = 58.00 + score - defects;
+            document.getElementById('attribute_score_display').textContent = score.toFixed(2);
+            document.getElementById('defect_score_display').textContent = `-${defects.toFixed(2)}`;
+            document.getElementById('total_score_display').textContent = total.toFixed(2);
+        }
+
+        // --- RUEDA INTERACTIVA SVG ---
+        function openAromaModal(listKey) {
+            if(getActiveSession().descriptive[listKey].length >= 5) return document.getElementById('limitMessage').classList.remove('hidden'), setTimeout(()=>document.getElementById('limitMessage').classList.add('hidden'), 2000);
+            modalState = { currentListKey: listKey, path: [] };
+            renderWheel();
+            document.getElementById('aromaModal').classList.remove('hidden');
+        }
+        function closeAromaModal() { document.getElementById('aromaModal').classList.add('hidden'); }
+        
+        function renderWheel() {
+            const container = document.getElementById('wheelContainer');
+            const size = 300;
+            const center = size / 2;
+            const radius = size / 2 - 10;
+            const innerRadius = 50;
+            const path = modalState.path;
+
+            // Calcular segmentos
+            let segments = [];
+            if (path.length === 0) { // Nivel 0
+                segments = Object.keys(AROMA_WHEEL).map(k => ({ label: k, color: AROMA_WHEEL[k].color, text: AROMA_WHEEL[k].text, value: k, isLeaf: false }));
+            } else if (path.length === 1) { // Nivel 1
+                const cat = AROMA_WHEEL[path[0]];
+                segments = Object.keys(cat.sub).map(k => {
+                    // Detectar rama corta (ej. Floral -> Te Negro)
+                    const isShort = cat.sub[k].length === 1 && cat.sub[k][0] === k;
+                    return { label: k, color: cat.color, text: cat.text, value: k, isLeaf: isShort };
+                });
+            } else if (path.length === 2) { // Nivel 2
+                const cat = AROMA_WHEEL[path[0]];
+                segments = cat.sub[path[1]].map(k => ({ label: k, color: cat.color, text: cat.text, value: k, isLeaf: true }));
+            }
+
+            // Construir SVG
+            let svgContent = '';
+            const total = segments.length;
+            
+            segments.forEach((seg, i) => {
+                const startAngle = (i * 360) / total;
+                const endAngle = ((i + 1) * 360) / total;
+                const startRad = (startAngle - 90) * Math.PI / 180;
+                const endRad = (endAngle - 90) * Math.PI / 180;
+                
+                const x1 = center + radius * Math.cos(startRad);
+                const y1 = center + radius * Math.sin(startRad);
+                const x2 = center + radius * Math.cos(endRad);
+                const y2 = center + radius * Math.sin(endRad);
+                
+                const x1_in = center + innerRadius * Math.cos(startRad);
+                const y1_in = center + innerRadius * Math.sin(startRad);
+                const x2_in = center + innerRadius * Math.cos(endRad);
+                const y2_in = center + innerRadius * Math.sin(endRad);
+                
+                const large = endAngle - startAngle > 180 ? 1 : 0;
+                const d = `M ${x1_in} ${y1_in} L ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2} L ${x2_in} ${y2_in} A ${innerRadius} ${innerRadius} 0 ${large} 0 ${x1_in} ${y1_in} Z`;
+                
+                // Texto
+                const midAngle = (startAngle + endAngle) / 2 - 90;
+                const midRad = midAngle * Math.PI / 180;
+                const txtR = innerRadius + (radius - innerRadius) * 0.6;
+                const tx = center + txtR * Math.cos(midRad);
+                const ty = center + txtR * Math.sin(midRad);
+                let rot = midAngle * 180 / Math.PI + 90;
+                if(rot > 90 && rot < 270) rot += 180;
+
+                // Event Handler hack for vanilla JS string template
+                // Usamos data-index para identificar el clic
+                svgContent += `<g onclick="wheelClick(${i})" style="cursor:pointer" class="hover:opacity-90 transition-opacity">
+                    <path d="${d}" fill="${seg.color}" stroke="white" stroke-width="2"/>
+                    <text x="${tx}" y="${ty}" fill="${seg.text}" font-size="10" font-weight="bold" text-anchor="middle" alignment-baseline="middle" transform="rotate(${rot}, ${tx}, ${ty})" style="pointer-events:none; text-shadow:0px 0px 2px rgba(0,0,0,0.5)">${seg.label.length > 12 ? seg.label.substring(0,10)+'..' : seg.label}</text>
+                </g>`;
+            });
+
+            // Centro
+            let centerContent = '';
+            if (path.length > 0) {
+                centerContent = `<foreignObject x="${center-20}" y="${center-20}" width="40" height="40"><button onclick="wheelBack(event)" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center text-gray-600 hover:bg-gray-100"><i class="fas fa-arrow-left"></i></button></foreignObject>`;
+            } else {
+                centerContent = `<circle cx="${center}" cy="${center}" r="${innerRadius-2}" fill="white" stroke="#ddd"/><text x="${center}" y="${center}" text-anchor="middle" alignment-baseline="middle" font-size="10" fill="#999" font-weight="bold">SCA</text>`;
+            }
+
+            container.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${svgContent}${centerContent}</svg>
+                                   <div class="mt-4 text-center text-sm text-gray-500 font-medium">${path.length === 0 ? 'Selecciona una Categoría' : path.join(' > ')}</div>`;
+            
+            // Guardar segmentos actuales para el click handler
+            modalState.currentSegments = segments;
+        }
+
+        window.wheelClick = (index) => {
+            const seg = modalState.currentSegments[index];
+            if (seg.isLeaf) {
+                const fullText = [...modalState.path, seg.value].join(' > ');
+                const cat = modalState.path[0] || seg.value;
+                getActiveSession().descriptive[modalState.currentListKey].push({ text: fullText, category: cat });
+                renderTags(modalState.currentListKey);
+                closeAromaModal();
+            } else {
+                modalState.path.push(seg.value);
+                renderWheel();
+            }
+        };
+        
+        window.wheelBack = (e) => {
+            e.stopPropagation();
+            modalState.path.pop();
+            renderWheel();
+        };
+
+        function renderTags(listKey) {
+            const c = document.getElementById(listKey === 'fragrance_aromas' ? 'fragrance_aroma_tags' : 'flavor_aroma_tags'); 
+            c.innerHTML = '';
+            const list = getActiveSession().descriptive[listKey];
+            list.forEach(obj => {
+                const d = AROMA_WHEEL[obj.category];
+                // Fallback si no encuentra la categoría
+                const colors = d ? { bg: d.color, tx: d.text } : { bg: '#ccc', tx: 'black' };
+                const t = document.createElement('div'); 
+                t.className = `aroma-tag m-1`;
+                t.style.backgroundColor = colors.bg;
+                t.style.color = colors.tx;
+                t.innerHTML = `<span class="aroma-tag-text">${obj.text}</span><button onclick="removeAroma('${listKey}', '${obj.text.replace(/'/g,"\\'")}')">&times;</button>`;
+                c.appendChild(t);
+            });
+        }
+        function removeAroma(listKey, txt) {
+            const session = getActiveSession();
+            session.descriptive[listKey] = session.descriptive[listKey].filter(x => x.text !== txt); 
+            renderTags(listKey);
+        }
+
+        // --- EXPORTAR PDF ---
+        async function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const session = getActiveSession();
+            const m = session.metadata; const d = session.descriptive; const a = session.affective;
+            
+            const pageWidth = 210; const margin = 15; let y = 20;
+            function addText(t, x, s=10, f="helvetica", st="normal", c=[0,0,0]) { doc.setFont(f,st); doc.setFontSize(s); doc.setTextColor(...c); doc.text(String(t), x, y); }
+
+            addText("SCA Coffee Value Assessment", 105, 18, "helvetica", "bold"); doc.text("Reporte de Cata", 105, y+7, {align:"center"}); y+=20;
+            
+            doc.setFillColor(243,244,246); doc.rect(margin, y-5, pageWidth-(margin*2), 20, 'F');
+            addText(`Muestra: ${m.cafe||"Sin Nombre"}`, margin+5, 12, "helvetica", "bold");
+            addText(`Fecha: ${m.fecha}`, 140, 10); y+=7;
+            addText(`Catador: ${m.nombre||"Anónimo"}`, margin+5, 10); y+=15;
+
+            function drawSection(title, desc, score, notes) {
+                doc.setFillColor(30,64,175); doc.rect(margin, y, pageWidth-(margin*2), 8, 'F');
+                doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.text(title, margin+3, y+5.5); y+=14;
+                
+                doc.setTextColor(0,0,0); doc.setFontSize(10); doc.text("Descriptivo", margin, y); doc.text("Puntaje", 140, y); y+=6;
+                
+                doc.setFont("helvetica","normal"); doc.setFontSize(9);
+                const splitDesc = doc.splitTextToSize(desc, 110); doc.text(splitDesc, margin, y);
+                doc.setFont("helvetica","bold");
+                const splitScore = doc.splitTextToSize(score, 50); doc.text(splitScore, 140, y);
+                
+                y += Math.max(splitDesc.length*4, splitScore.length*4) + 4;
+                if(notes) {
+                    doc.setFont("helvetica","italic"); doc.setTextColor(100);
+                    const splitNotes = doc.splitTextToSize(`Notas: ${notes}`, pageWidth-(margin*2));
+                    doc.text(splitNotes, margin, y); y += (splitNotes.length*4) + 6;
+                } else { y+=2; }
+                doc.setDrawColor(220); doc.line(margin, y-2, pageWidth-margin, y-2); y+=6;
+                if(y>270) { doc.addPage(); y=20; }
+            }
+
+            const al = d.fragrance_aromas.map(i=>i.text).join(", ");
+            drawSection("1. Fragancia y Aroma", `Intensidad Fragancia: ${d.fragrance_intensity}\nIntensidad Aroma: ${d.aroma_intensity}\nDescriptores: ${al||"-"}`, `Fragancia: ${a.fragrance_final}\nAroma: ${a.aroma_final}`, a.fragrance_aroma_final_notes);
+            
+            const fl = d.flavor_aromas.map(i=>i.text).join(", ");
+            drawSection("2. Sabor y Postgusto", `Intensidad Sabor: ${d.flavor_intensity}\nIntensidad Postgusto: ${d.aftertaste_intensity}\nGustos: ${d.main_tastes.join(", ")|| "-"}\nNotas: ${fl||"-"}`, `Sabor: ${a.flavor_final}\nPostgusto: ${a.aftertaste_final}`, a.flavor_aftertaste_final_notes);
+            
+            drawSection("3. Acidez", `Intensidad: ${d.acidity_intensity}\nTipo: ${d.acidity_type||"-"}`, `Puntaje: ${a.acidity_final}`, a.acidity_final_notes);
+            drawSection("4. Dulzura", `Intensidad: ${d.sweetness_intensity}\nNotas: ${d.sweetness_notes||"-"}`, `Puntaje: ${a.sweetness_final}`, a.sweetness_final_notes);
+            drawSection("5. Cuerpo", `Intensidad: ${d.mouthfeel_intensity}\nTipo: ${d.mouthfeel_types.join(", ")||"-"}`, `Puntaje: ${a.mouthfeel_final}`, a.mouthfeel_final_notes);
+            
+            let attrScore = 0;
+            const SLIDER_PTS = { '1': 0, '2': 0.75, '3': 1.25, '4': 2, '5': 2.75, '6': 3.25, '7': 4, '8': 4.5, '9': 5.25 };
+            ['fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final', 'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'].forEach(k => attrScore += SLIDER_PTS[String(a[k] || '1')]);
+            const defC = (a.non_uniform_cups*2)+(a.defective_cups*4);
+            const tot = 58.00 + attrScore - defC;
+
+            drawSection("6. General y Defectos", `Defectos: ${a.defects.join(", ")||"Ninguno"}\nTazas No Uniformes: ${a.non_uniform_cups}\nTazas Defectuosas: ${a.defective_cups}\nImpresión General: ${d.part3_notes||"-"}`, `Puntaje General: ${a.overall_final}`, a.overall_final_notes);
+            
+            y+=5; if(y>260) { doc.addPage(); y=20; }
+            doc.setFillColor(30,64,175); doc.rect(margin, y, pageWidth-(margin*2), 25, 'F');
+            doc.setTextColor(255,255,255); doc.setFontSize(10); doc.text("PUNTAJE TOTAL", 105, y+8, {align:"center"});
+            doc.setFontSize(24); doc.setFont("helvetica","bold"); doc.text(tot.toFixed(2), 105, y+19, {align:"center"});
+            
+            doc.setFontSize(8); doc.setTextColor(150); doc.text(`Generado el ${new Date().toLocaleDateString()} con SCA Coffee Cupping App`, 105, 290, {align:"center"});
+            
+            doc.save(`${(m.nombre||'catador').replace(/\W/g,'_')}_${(m.cafe||'muestra').replace(/\W/g,'_')}_${m.fecha}.pdf`);
+        }
+    </script>
+</body>
+</html>
