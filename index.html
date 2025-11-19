@@ -50,7 +50,7 @@
     <!-- Cabecera Fija -->
     <header class="bg-blue-800 text-white shadow-md z-10 flex flex-col">
         <div class="p-3 text-center">
-            <h1 class="text-lg font-bold">SCA Coffee Value by Penguin Coffee Roasters</h1>
+            <h1 class="text-lg font-bold">SCA Coffee Value Assessment</h1>
         </div>
 
         <!-- BARRA DE PESTAÑAS -->
@@ -321,7 +321,7 @@
             <div class="accordion-item bg-white rounded-lg shadow p-4 text-center">
                 <h3 class="text-lg font-bold mb-2">Exportar Hoja de Cata Actual</h3>
                 <button id="exportButton" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-                    <i class="fas fa-file-pdf"></i> <span>Exportar PDF (Esta Muestra)</span>
+                    <i class="fas fa-file-pdf"></i> <span>Generar Reporte PDF</span>
                 </button>
             </div>
 
@@ -447,7 +447,6 @@
         // --- 4. GESTIÓN DE SESIONES ---
         
         function initSessions() {
-            // Crear primera sesión por defecto
             addSession(true);
         }
 
@@ -456,7 +455,6 @@
             const newSession = JSON.parse(JSON.stringify(initialSessionState));
             newSession.id = id;
             
-            // Si no es la primera, copiar Nombre y Fecha de la actual
             if (!isFirst) {
                 const current = getActiveSession();
                 if (current) {
@@ -464,7 +462,6 @@
                     newSession.metadata.fecha = current.metadata.fecha;
                 }
             } else {
-                // Si es la primera, poner fecha de hoy
                 newSession.metadata.fecha = new Date().toISOString().split('T')[0];
             }
 
@@ -480,7 +477,7 @@
         }
 
         function deleteSession(e, id) {
-            e.stopPropagation(); // Detener propagación para no cambiar de tab
+            e.stopPropagation(); 
             if (sessions.length <= 1) {
                 alert("Debe haber al menos una hoja de cata.");
                 return;
@@ -490,12 +487,11 @@
             const index = sessions.findIndex(s => s.id === id);
             sessions = sessions.filter(s => s.id !== id);
 
-            // Si borramos la activa, cambiar a la anterior o a la 0
             if (id === activeSessionId) {
                 const newIndex = Math.max(0, index - 1);
                 switchTab(sessions[newIndex].id);
             } else {
-                renderTabs(); // Solo redibujar tabs
+                renderTabs(); 
             }
         }
 
@@ -511,18 +507,15 @@
                 btn.className = `flex items-center px-4 py-2 rounded-t-lg cursor-pointer whitespace-nowrap transition-colors border-r border-blue-700/30 relative group ${isActive ? 'bg-gray-50 text-blue-900 font-bold shadow-inner z-10' : 'bg-blue-900/40 text-blue-100 hover:bg-blue-800/60'}`;
                 btn.onclick = () => switchTab(session.id);
                 
-                // Texto
                 const span = document.createElement('span');
                 span.textContent = name;
                 span.className = "mr-2";
                 btn.appendChild(span);
 
-                // Botón Cerrar (si hay más de 1) - CORREGIDO TAMAÑO Y Z-INDEX
                 if (sessions.length > 1) {
                     const closeBtn = document.createElement('button');
                     closeBtn.type = 'button';
                     closeBtn.innerHTML = '&times;';
-                    // Aumentado w-6 h-6 y z-20 para asegurar clic
                     closeBtn.className = `w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500 hover:text-white text-base font-bold opacity-70 hover:opacity-100 ml-2 transition z-20 bg-white/20`;
                     closeBtn.onclick = (e) => deleteSession(e, session.id);
                     btn.appendChild(closeBtn);
@@ -531,7 +524,6 @@
                 container.appendChild(btn);
             });
 
-            // Botón Añadir (+)
             const addBtn = document.createElement('button');
             addBtn.className = "ml-1 mb-1 p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow w-8 h-8 flex items-center justify-center transition-transform active:scale-95 shrink-0";
             addBtn.innerHTML = '<i class="fas fa-plus"></i>';
@@ -546,12 +538,10 @@
             const a = session.affective;
             const m = session.metadata;
 
-            // Metadata
             document.getElementById('catador_nombre').value = m.nombre;
             document.getElementById('catador_fecha').value = m.fecha;
             document.getElementById('catador_cafe').value = m.cafe;
 
-            // Sliders & Displays
             ['fragrance_intensity', 'aroma_intensity', 'flavor_intensity', 'aftertaste_intensity', 
              'acidity_intensity', 'sweetness_intensity', 'mouthfeel_intensity'].forEach(k => {
                 document.getElementById(k).value = d[k];
@@ -560,59 +550,47 @@
             ['fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final', 
              'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'].forEach(k => {
                 document.getElementById(k).value = a[k];
-                // El ID del span de valor suele ser k + '_val'
                 const valSpan = document.getElementById(k + '_val');
                 if(valSpan) valSpan.textContent = a[k];
             });
 
-            // Notes
             document.getElementById('sweetness_notes').value = d.sweetness_notes;
             document.getElementById('part3_notes').value = d.part3_notes;
             ['fragrance_aroma', 'flavor_aftertaste', 'acidity', 'sweetness', 'mouthfeel', 'overall'].forEach(k => {
                 document.getElementById(k + '_final_notes').value = a[k + '_final_notes'];
             });
 
-            // Checkboxes & Radios
-            // Acidity Radio
             const radios = document.getElementsByName('acidity_type');
             radios.forEach(r => r.checked = (r.value === d.acidity_type));
 
-            // Arrays (Main Tastes, Mouthfeel, Defects)
-            // Reset checkboxes first
             document.querySelectorAll('input[name="main_taste"]').forEach(cb => cb.checked = d.main_tastes.includes(cb.value));
             document.querySelectorAll('input[name="mouthfeel_type"]').forEach(cb => cb.checked = d.mouthfeel_types.includes(cb.value));
             document.querySelectorAll('input[name="defect_type"]').forEach(cb => cb.checked = a.defects.includes(cb.value));
             
-            // Count Checkboxes (Non-Uniform, Defective)
             const nonUniInputs = document.querySelectorAll('input[name="non_uniform_cups"]');
             nonUniInputs.forEach((cb, i) => cb.checked = i < a.non_uniform_cups);
 
             const defCupsInputs = document.querySelectorAll('input[name="defective_cups"]');
             defCupsInputs.forEach((cb, i) => cb.checked = i < a.defective_cups);
 
-            // Aromas (Re-render tags)
             renderTags('fragrance_aromas');
             renderTags('flavor_aromas');
         }
 
         function attachInputListeners() {
-            // Metadata
             ['catador_nombre', 'catador_fecha'].forEach(id => {
                 document.getElementById(id).addEventListener('input', (e) => getActiveSession().metadata[id.split('_')[1]] = e.target.value);
             });
-            // Cafe (Special: updates tab name)
             document.getElementById('catador_cafe').addEventListener('input', (e) => {
                 getActiveSession().metadata.cafe = e.target.value;
-                renderTabs(); // Redraw tabs to show new name
+                renderTabs(); 
             });
 
-            // Notes
             const noteIds = ['sweetness_notes', 'part3_notes', 'fragrance_aroma_final_notes', 'flavor_aftertaste_final_notes', 'acidity_final_notes', 'sweetness_final_notes', 'mouthfeel_final_notes', 'overall_final_notes'];
             noteIds.forEach(id => {
                 document.getElementById(id).addEventListener('input', (e) => updateNotes(id, e.target.value));
             });
 
-            // Checkboxes (Simple Lists)
             document.querySelectorAll('input[name="main_taste"]').forEach(cb => {
                 cb.addEventListener('change', () => {
                     const s = getActiveSession().descriptive;
@@ -635,14 +613,12 @@
                 });
             });
 
-            // Radios
             document.querySelectorAll('input[name="acidity_type"]').forEach(rb => {
                 rb.addEventListener('change', () => {
                     if(rb.checked) getActiveSession().descriptive.acidity_type = rb.value;
                 });
             });
 
-            // Count Checkboxes
             document.querySelectorAll('input[name="non_uniform_cups"]').forEach(cb => cb.addEventListener('change', () => {
                 getActiveSession().affective.non_uniform_cups = document.querySelectorAll('input[name="non_uniform_cups"]:checked').length; calculateTotalScore();
             }));
@@ -651,16 +627,13 @@
             }));
         }
 
-
         // --- 6. FUNCIONES AUXILIARES ---
         function updateSlider(id) {
             const val = document.getElementById(id).value;
             document.getElementById(id + '_val').textContent = val;
-            
             const session = getActiveSession();
             const section = id.includes('_final') ? 'affective' : 'descriptive';
             session[section][id] = parseInt(val);
-            
             if (section === 'affective') calculateTotalScore();
         }
 
@@ -735,7 +708,6 @@
         function renderTags(listKey) {
             const c = document.getElementById(listKey === 'fragrance_aromas' ? 'fragrance_aroma_tags' : 'flavor_aroma_tags'); 
             c.innerHTML = '';
-            // Usamos la sesión activa
             const list = getActiveSession().descriptive[listKey];
             list.forEach(obj => {
                 const d = aromaWheel[obj.category];
@@ -750,39 +722,155 @@
             renderTags(listKey);
         }
 
-        // PDF Export (Usando datos de la sesión ACTIVA)
+        // --- NUEVA FUNCIÓN: EXPORTAR PDF VECTORIAL ---
         async function exportToPDF() {
-            const btn = document.getElementById('exportButton'); const oldTxt = btn.innerHTML;
-            btn.disabled = true; btn.innerHTML = 'Generando...';
-            
-            const current = getActiveSession();
-            const { nombre, cafe, fecha } = current.metadata;
-            const filename = `${(nombre||'catador').replace(/\W/g,'_')}_${(cafe||'muestra').replace(/\W/g,'_')}_${fecha}.pdf`;
-            
-            const { jsPDF } = window.jspdf; const doc = new jsPDF('p', 'mm', 'a4');
-            const items = document.querySelectorAll('.accordion-item');
-            
-            for(let i=0; i<items.length; i++) {
-                if(items[i].contains(btn)) continue; 
-                
-                const content = items[i].querySelector('.accordion-content');
-                const wasOpen = content.classList.contains('open');
-                if(!wasOpen) { content.classList.add('open'); content.style.maxHeight = 'none'; }
-                
-                await new Promise(r => setTimeout(r, 100)); 
-                
-                const canvas = await html2canvas(items[i], { scale: 2, backgroundColor: '#ffffff' });
-                const img = canvas.toDataURL('image/png');
-                const h = (canvas.height * 210) / canvas.width; 
-                
-                if(i > 0) doc.addPage();
-                doc.addImage(img, 'PNG', 0, 10, 210, h);
-                
-                if(!wasOpen) { content.classList.remove('open'); content.style.maxHeight = ''; }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const session = getActiveSession();
+            const m = session.metadata;
+            const d = session.descriptive;
+            const a = session.affective;
+
+            const pageWidth = 210;
+            const margin = 15;
+            let y = 20;
+
+            function addText(text, x, fontSize = 10, font = "helvetica", style = "normal", color = [0,0,0]) {
+                doc.setFont(font, style);
+                doc.setFontSize(fontSize);
+                doc.setTextColor(...color);
+                doc.text(String(text), x, y);
             }
             
+            // Título
+            addText("SCA Coffee Value Assessment", 105, 18, "helvetica", "bold", [0,0,0]);
+            doc.text("Reporte de Cata", 105, y + 7, { align: "center" });
+            y += 20;
+
+            // Info Box
+            doc.setFillColor(243, 244, 246);
+            doc.rect(margin, y - 5, pageWidth - (margin * 2), 20, 'F');
+            addText(`Muestra: ${m.cafe || "Sin Nombre"}`, margin + 5, 12, "helvetica", "bold");
+            addText(`Fecha: ${m.fecha}`, 140, 10);
+            y += 7;
+            addText(`Catador: ${m.nombre || "Anónimo"}`, margin + 5, 10);
+            y += 15;
+
+            // Helper para dibujar secciones
+            function drawSection(title, descData, scoreData, notes) {
+                // Encabezado
+                doc.setFillColor(30, 64, 175);
+                doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(11);
+                doc.text(title, margin + 3, y + 5.5);
+                y += 14;
+                
+                // Columnas
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.text("Descriptivo", margin, y);
+                doc.text("Puntaje", 140, y);
+                y += 6;
+                
+                // Datos
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                
+                const splitDesc = doc.splitTextToSize(descData, 110);
+                doc.text(splitDesc, margin, y);
+                
+                doc.setFont("helvetica", "bold");
+                const splitScore = doc.splitTextToSize(scoreData, 50);
+                doc.text(splitScore, 140, y);
+                
+                const descHeight = splitDesc.length * 4;
+                const scoreHeight = splitScore.length * 4;
+                y += Math.max(descHeight, scoreHeight) + 4;
+                
+                if (notes) {
+                    doc.setFont("helvetica", "italic");
+                    doc.setTextColor(100);
+                    const splitNotes = doc.splitTextToSize(`Notas: ${notes}`, pageWidth - (margin * 2));
+                    doc.text(splitNotes, margin, y);
+                    y += (splitNotes.length * 4) + 6;
+                } else {
+                    y += 2;
+                }
+                
+                doc.setDrawColor(220);
+                doc.line(margin, y - 2, pageWidth - margin, y - 2);
+                y += 6;
+                
+                if (y > 270) { doc.addPage(); y = 20; }
+            }
+
+            // 1. Fragancia
+            const aromasList = d.fragrance_aromas.map(i => i.text).join(", ");
+            drawSection("1. Fragancia y Aroma", 
+                `Intensidad Fragancia: ${d.fragrance_intensity}\nIntensidad Aroma: ${d.aroma_intensity}\nDescriptores: ${aromasList || "-"}`, 
+                `Fragancia: ${a.fragrance_final}\nAroma: ${a.aroma_final}`, 
+                a.fragrance_aroma_final_notes);
+
+            // 2. Sabor
+            const flavList = d.flavor_aromas.map(i => i.text).join(", ");
+            drawSection("2. Sabor y Postgusto", 
+                `Intensidad Sabor: ${d.flavor_intensity}\nIntensidad Postgusto: ${d.aftertaste_intensity}\nGustos: ${d.main_tastes.join(", ") || "-"}\nNotas: ${flavList || "-"}`, 
+                `Sabor: ${a.flavor_final}\nPostgusto: ${a.aftertaste_final}`, 
+                a.flavor_aftertaste_final_notes);
+
+            // 3. Acidez
+            drawSection("3. Acidez", 
+                `Intensidad: ${d.acidity_intensity}\nTipo: ${d.acidity_type || "-"}`, 
+                `Puntaje: ${a.acidity_final}`, 
+                a.acidity_final_notes);
+
+            // 4. Dulzura
+            drawSection("4. Dulzura", 
+                `Intensidad: ${d.sweetness_intensity}\nNotas: ${d.sweetness_notes || "-"}`, 
+                `Puntaje: ${a.sweetness_final}`, 
+                a.sweetness_final_notes);
+
+            // 5. Cuerpo
+            drawSection("5. Cuerpo", 
+                `Intensidad: ${d.mouthfeel_intensity}\nTipo: ${d.mouthfeel_types.join(", ") || "-"}`, 
+                `Puntaje: ${a.mouthfeel_final}`, 
+                a.mouthfeel_final_notes);
+
+            // 6. General
+            let attrScore = 0;
+            const SLIDER_PTS = { '1': 0, '2': 0.75, '3': 1.25, '4': 2, '5': 2.75, '6': 3.25, '7': 4, '8': 4.5, '9': 5.25 };
+            ['fragrance_final', 'aroma_final', 'flavor_final', 'aftertaste_final', 'acidity_final', 'sweetness_final', 'mouthfeel_final', 'overall_final'].forEach(k => attrScore += SLIDER_PTS[String(a[k] || '1')]);
+            const defectsCount = (a.non_uniform_cups * 2) + (a.defective_cups * 4);
+            const totalScore = 58.00 + attrScore - defectsCount;
+
+            drawSection("6. General y Defectos", 
+                `Defectos: ${a.defects.join(", ") || "Ninguno"}\nTazas No Uniformes: ${a.non_uniform_cups}\nTazas Defectuosas: ${a.defective_cups}\nImpresión General: ${d.part3_notes || "-"}`, 
+                `Puntaje General: ${a.overall_final}`, 
+                a.overall_final_notes);
+
+            // Puntaje Final
+            y += 5;
+            if (y > 260) { doc.addPage(); y = 20; }
+            
+            doc.setFillColor(30, 64, 175);
+            doc.rect(margin, y, pageWidth - (margin * 2), 25, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.text("PUNTAJE TOTAL", 105, y + 8, { align: "center" });
+            doc.setFontSize(24);
+            doc.setFont("helvetica", "bold");
+            doc.text(totalScore.toFixed(2), 105, y + 19, { align: "center" });
+
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Generado el ${new Date().toLocaleDateString()} con SCA Coffee Cupping App`, 105, 290, { align: "center" });
+
+            const filename = `${(m.nombre||'catador').replace(/\W/g,'_')}_${(m.cafe||'muestra').replace(/\W/g,'_')}_${m.fecha}.pdf`;
             doc.save(filename);
-            btn.disabled = false; btn.innerHTML = oldTxt;
         }
     </script>
 </body>
